@@ -46,15 +46,15 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 font-sans px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 px-4 font-sans">
 
-      {/* Compact Login Card */}
-      <div className={`w-full max-w-xs rounded-2xl shadow-lg bg-gray-900/90 backdrop-blur-sm border border-gray-800
+      {/* ERP Card */}
+      <div className={`w-full max-w-xs rounded-3xl bg-gray-900/95 backdrop-blur-md border border-gray-800 shadow-2xl
         ${isMobile ? "px-4 py-8" : "px-6 py-10"}`}>
 
         {/* Branding */}
-        <div className="text-center mb-4">
-          <h1 className={`font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-gray-400 text-3xl sm:text-4xl`}>
+        <div className="text-center mb-6">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-100">
             Bonomaya
           </h1>
           <p className="text-gray-400 uppercase tracking-wide mt-1 text-xs sm:text-sm font-semibold">
@@ -63,7 +63,7 @@ export default function LoginPage() {
         </div>
 
         {/* Welcome Box */}
-        <div className="text-center mb-4 border border-gray-700 rounded-lg py-2 px-3 bg-gray-800 shadow-sm">
+        <div className="text-center mb-5 border border-gray-700 rounded-xl py-2 px-3 bg-gray-800 shadow-sm">
           <h2 className="font-bold text-gray-100 text-lg sm:text-xl tracking-wide uppercase">
             Welcome
           </h2>
