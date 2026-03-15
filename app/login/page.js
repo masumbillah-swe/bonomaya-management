@@ -52,10 +52,10 @@ export default function LoginPage() {
       {/* Login Card */}
       <div
         className={`w-full max-w-md rounded-3xl border border-gray-700 shadow-2xl transition-all duration-300 bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-md
-          ${isMobile ? "px-8 py-16" : "px-6 sm:px-10 py-16"}`}
+          ${isMobile ? "px-6 py-12" : "px-6 sm:px-8 py-12"}`}
       >
         {/* Branding */}
-        <div className={`text-center ${isMobile ? "mb-12" : "mb-10"}`}>
+        <div className={`text-center ${isMobile ? "mb-8" : "mb-8"}`}>
           <h1 className={`font-extrabold tracking-wide bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent ${isMobile ? "text-4xl" : "text-5xl sm:text-6xl"}`}>
             Bonomaya
           </h1>
@@ -65,7 +65,7 @@ export default function LoginPage() {
         </div>
 
         {/* Boxed Welcome Message */}
-        <div className={`text-center mb-10 border border-gray-600 rounded-xl p-4 bg-gray-800`}>
+        <div className={`text-center mb-6 border border-gray-600 rounded-xl p-4 bg-gray-800`}>
           <h2 className={`font-extrabold tracking-wide uppercase bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent ${isMobile ? "text-lg" : "text-2xl sm:text-3xl"}`}>
             Welcome
           </h2>
@@ -75,7 +75,7 @@ export default function LoginPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleLogin} className="space-y-6">
+        <form onSubmit={handleLogin} className="space-y-5">
           <div>
             <label className="block text-gray-400 text-sm font-semibold mb-2 uppercase tracking-wide">Email</label>
             <input
@@ -83,7 +83,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className={`w-full p-5 rounded-xl bg-gray-700 text-white outline-none border ${
+              className={`w-full p-4 rounded-xl bg-gray-700 text-white outline-none border ${
                 error ? "border-red-500" : "border-gray-600"
               } focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition`}
               placeholder="Enter your corporate email"
@@ -97,7 +97,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className={`w-full p-5 rounded-xl bg-gray-700 text-white outline-none border ${
+              className={`w-full p-4 rounded-xl bg-gray-700 text-white outline-none border ${
                 error ? "border-red-500" : "border-gray-600"
               } focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition`}
               placeholder="Enter your password"
@@ -108,14 +108,14 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full p-5 rounded-xl font-semibold uppercase tracking-wide text-white transition-all duration-300 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 active:scale-95 cursor-pointer"
+            className="w-full p-4 rounded-xl font-semibold uppercase tracking-wide text-white transition-all duration-300 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 active:scale-95 cursor-pointer"
           >
             {loading ? "Authenticating..." : "Sign In"}
           </button>
         </form>
 
         {/* Footer */}
-        <p className="text-center text-gray-400 text-[10px] sm:text-[11px] mt-6 uppercase tracking-wide font-medium hover:text-gray-200 transition-colors">
+        <p className="text-center text-gray-400 text-[10px] sm:text-[11px] mt-5 uppercase tracking-wide font-medium hover:text-gray-200 transition-colors">
           Developed by <span className="font-bold text-blue-400 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">Masum Billah Maverick</span>
         </p>
       </div>
