@@ -4,13 +4,11 @@ import { auth, db } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
-import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [errorShake, setErrorShake] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e) => {
@@ -28,93 +26,76 @@ export default function LoginPage() {
         else if (role === "Chef") router.push("/chef");
         else if (role === "Salesman") router.push("/salesman");
       } else {
-        throw new Error("User role not found!");
+        alert("User role not found!");
       }
-    } catch (err) {
-      setErrorShake(true);
-      setTimeout(() => setErrorShake(false), 500);
+    } catch (error) {
       alert("Invalid Email or Password!");
     }
     setLoading(false);
   };
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#FF8C00] via-[#FFA500] to-[#FFB347] overflow-hidden flex items-center justify-center font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center p-6 font-sans relative overflow-hidden">
+      
+      {/* Background Blurs */}
+      <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-orange-300/20 rounded-full blur-3xl"></div>
+      <div className="absolute -top-32 -right-32 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl"></div>
 
-      {/* Animated Background Particles */}
-      <motion.div
-        className="absolute w-96 h-96 rounded-full bg-[#FFA500]/10 blur-3xl top-20 left-10"
-        animate={{ x: [0, 50, 0], y: [0, 30, 0] }}
-        transition={{ duration: 10, repeat: Infinity, repeatType: "mirror" }}
-      />
-      <motion.div
-        className="absolute w-80 h-80 rounded-full bg-[#FFA500]/10 blur-2xl bottom-10 right-20"
-        animate={{ x: [0, -50, 0], y: [0, -30, 0] }}
-        transition={{ duration: 12, repeat: Infinity, repeatType: "mirror" }}
-      />
-
-      {/* Login Form */}
-      <motion.div
-        className="relative w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl shadow-2xl p-10 z-10"
-        animate={errorShake ? { x: [0, -10, 10, -10, 10, 0] } : { x: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        {/* Branding */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold italic text-white tracking-tight">Bonomaya</h1>
-          <p className="text-xs uppercase text-gray-800 tracking-widest mt-1">Smart Management System</p>
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200 z-10">
+        
+        {/* Branding Section */}
+        <div className="bg-[#C83E0D] p-12 text-center text-white">
+          <h1 className="text-4xl font-extrabold italic tracking-tight mb-1">Bonomaya</h1>
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Smart Management System</p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleLogin} className="space-y-6">
-
-          {/* Email Input */}
-          <div className="relative">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full bg-white/20 backdrop-blur-sm rounded-2xl px-5 pt-5 pb-3 text-sm font-semibold text-gray-800 outline-none border border-white/30 focus:ring-2 focus:ring-[#FFA500]/50 focus:border-transparent transition"
-              placeholder="Email Address"
-            />
+        {/* Form Section */}
+        <div className="p-10 space-y-8">
+          <div className="text-center">
+            <h2 className="text-2xl font-extrabold uppercase text-gray-800 italic">Welcome Aboard!</h2>
+            <p className="text-xs text-gray-500 mt-1 uppercase tracking-wide">Login to your Smart Portal</p>
           </div>
 
-          {/* Password Input */}
-          <div className="relative">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full bg-white/20 backdrop-blur-sm rounded-2xl px-5 pt-5 pb-3 text-sm font-semibold text-gray-800 outline-none border border-white/30 focus:ring-2 focus:ring-[#FFA500]/50 focus:border-transparent transition"
-              placeholder="Password"
-            />
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide ml-3">Email Address</label>
+              <input 
+                type="email" 
+                placeholder="masum@bonomaya.com" 
+                className="w-full bg-gray-50 border border-gray-200 p-4 rounded-2xl font-semibold text-sm outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wide ml-3">Password</label>
+              <input 
+                type="password" 
+                placeholder="••••••••" 
+                className="w-full bg-gray-50 border border-gray-200 p-4 rounded-2xl font-semibold text-sm outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <button 
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 rounded-3xl font-extrabold uppercase tracking-widest shadow-lg hover:scale-105 hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all mt-4"
+            >
+              {loading ? "Authenticating..." : "Sign In"}
+            </button>
+          </form>
+
+          <div className="pt-6 text-center border-t border-gray-100">
+            <p className="text-[9px] text-gray-400 uppercase tracking-wide italic">
+              Developed by Masum Billah Maverick
+            </p>
           </div>
-
-          {/* Button */}
-          <motion.button
-            type="submit"
-            disabled={loading}
-            whileHover={{ scale: 1.05, boxShadow: "0 0 20px rgba(255,165,0,0.5)" }}
-            whileTap={{ scale: 0.95 }}
-            className="w-full py-4 rounded-3xl font-extrabold uppercase tracking-widest text-black bg-gradient-to-r from-[#FF8C00] to-[#FFA500] shadow-lg flex items-center justify-center gap-2"
-          >
-            {loading && (
-              <svg className="animate-spin h-5 w-5 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-              </svg>
-            )}
-            {loading ? "Authenticating..." : "Sign In"}
-          </motion.button>
-        </form>
-
-        {/* Footer */}
-        <p className="text-center text-gray-800 text-[9px] mt-6 uppercase tracking-wide italic">
-          Developed by Masum Billah Maverick
-        </p>
-      </motion.div>
+        </div>
+      </div>
     </div>
   );
 }
