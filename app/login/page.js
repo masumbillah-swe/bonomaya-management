@@ -4,7 +4,7 @@ import { auth, db } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
-import { motion } from "framer-motion";
+import { motion, useAnimation } from "framer-motion";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -38,22 +38,34 @@ export default function LoginPage() {
     setLoading(false);
   };
 
-  // Floating particles
+  // Detect mobile
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Particles (only for desktop)
   const [particles, setParticles] = useState([]);
   useEffect(() => {
-    const p = Array.from({ length: 30 }).map(() => ({
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 3 + 1,
-      delay: Math.random() * 5,
-    }));
-    setParticles(p);
-  }, []);
+    if (!isMobile) {
+      const p = Array.from({ length: 30 }).map(() => ({
+        x: Math.random() * 100,
+        y: Math.random() * 100,
+        size: Math.random() * 3 + 1,
+        delay: Math.random() * 5,
+      }));
+      setParticles(p);
+    }
+  }, [isMobile]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900 font-sans px-4 relative overflow-hidden">
-      {/* Floating Particles */}
-      {particles.map((particle, index) => (
+
+      {/* Particles only for desktop */}
+      {!isMobile && particles.map((particle, index) => (
         <motion.div
           key={index}
           initial={{ opacity: 0 }}
@@ -79,16 +91,13 @@ export default function LoginPage() {
         />
       ))}
 
-      {/* Glassy Login Card */}
+      {/* Login Card */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        whileHover={{
-          scale: 1.03,
-          boxShadow: "0 15px 40px rgba(59,130,246,0.6)",
-        }}
-        className="w-full max-w-md p-10 rounded-3xl border border-gray-700 shadow-2xl transition-all duration-300 bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-md relative z-10"
+        whileHover={!isMobile ? { scale: 1.03, boxShadow: "0 15px 40px rgba(59,130,246,0.6)" } : {}}
+        className="w-full max-w-md px-6 sm:px-10 py-10 sm:py-12 rounded-3xl border border-gray-700 shadow-2xl transition-all duration-300 bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-md relative z-10"
       >
         {/* Branding */}
         <div className="text-center mb-8">
@@ -100,9 +109,9 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Premium Welcome Message */}
+        {/* Welcome Message */}
         <div className="text-center mb-6">
-          <h2 className="text-xl sm:text-2xl font-extrabold tracking-wide uppercase bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
+          <h2 className="text-lg sm:text-2xl font-extrabold tracking-wide uppercase bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
             Welcome
           </h2>
           <p className="text-gray-300 text-sm sm:text-base tracking-wide">Login to your Smart Portal</p>
@@ -139,11 +148,11 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Premium Animated Gradient Button */}
+          {/* Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full p-3 sm:p-4 md:p-5 rounded-xl font-semibold uppercase tracking-wide text-white transition-all duration-300 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_200%] hover:animate-gradient-xy hover:shadow-lg active:scale-95 cursor-pointer"
+            className="w-full p-4 rounded-xl font-semibold uppercase tracking-wide text-white transition-all duration-300 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_200%] hover:animate-gradient-xy hover:shadow-lg active:scale-95 cursor-pointer"
           >
             {loading ? "Authenticating..." : "Sign In"}
           </button>
@@ -155,7 +164,6 @@ export default function LoginPage() {
         </p>
       </motion.div>
 
-      {/* Gradient Animation Keyframes */}
       <style jsx>{`
         @keyframes gradient-xy {
           0% { background-position: 0% 50%; }
