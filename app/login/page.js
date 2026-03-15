@@ -9,11 +9,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError(false);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -26,92 +28,68 @@ export default function LoginPage() {
         else if (role === "Chef") router.push("/chef");
         else if (role === "Salesman") router.push("/salesman");
       } else {
-        alert("User role not found!");
+        throw new Error("User role not found!");
       }
-    } catch (error) {
+    } catch (err) {
+      setError(true);
       alert("Invalid Email or Password!");
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden font-sans">
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 font-sans px-4">
       
-      {/* Animated Background Shapes */}
-      <div className="absolute w-96 h-96 bg-[#FF5C12]/20 rounded-full blur-3xl animate-pulse-slow -bottom-40 -left-40"></div>
-      <div className="absolute w-96 h-96 bg-[#3474F5]/20 rounded-full blur-3xl animate-pulse-slow -top-40 -right-40"></div>
-      <div className="absolute w-80 h-80 bg-pink-300/10 rounded-full blur-2xl animate-spin-slow top-20 left-10"></div>
-      <div className="absolute w-80 h-80 bg-green-300/10 rounded-full blur-2xl animate-spin-slow-reverse bottom-10 right-20"></div>
-
-      {/* Glassmorphism Form */}
-      <div className="relative w-full max-w-md bg-white/40 backdrop-blur-md rounded-3xl shadow-2xl border border-white/30 overflow-hidden z-10">
-        
+      <div className="w-full max-w-md bg-gray-800 rounded-3xl shadow-xl p-10">
         {/* Branding */}
-        <div className="bg-[#C83E0D]/90 p-12 text-center text-white">
-          <h1 className="text-4xl font-extrabold italic tracking-tight mb-1">Bonomaya</h1>
-          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">Smart Management System</p>
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white tracking-tight">Bonomaya</h1>
+          <p className="text-xs text-gray-400 uppercase tracking-wide mt-1">Smart Management System</p>
         </div>
 
-        {/* Form Section */}
-        <div className="p-10 space-y-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-extrabold uppercase text-gray-800 italic">Welcome Back</h2>
-            <p className="text-xs text-gray-500 mt-1 uppercase tracking-wide">Login to your Smart Portal</p>
+        {/* Form */}
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div>
+            <label className="block text-gray-400 text-xs font-semibold mb-1 uppercase">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              className={`w-full p-3 rounded-xl bg-gray-700 text-white outline-none border ${
+                error ? "border-red-500" : "border-gray-600"
+              } focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition`}
+              placeholder="Enter your email"
+            />
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-6">
-            
-            {/* Email */}
-            <div className="relative">
-              <input 
-                type="email"
-                placeholder="masum@bonomaya.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full bg-white/60 backdrop-blur-sm border border-white/30 rounded-2xl px-5 pt-5 pb-3 text-sm font-semibold text-gray-800 outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
-              />
-              <label className="absolute left-5 top-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide pointer-events-none transition-all duration-300">
-                Email Address
-              </label>
-            </div>
-
-            {/* Password */}
-            <div className="relative">
-              <input 
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full bg-white/60 backdrop-blur-sm border border-white/30 rounded-2xl px-5 pt-5 pb-3 text-sm font-semibold text-gray-800 outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition"
-              />
-              <label className="absolute left-5 top-2 text-[10px] font-bold text-gray-500 uppercase tracking-wide pointer-events-none transition-all duration-300">
-                Password
-              </label>
-            </div>
-
-            {/* Button */}
-            <button 
-              disabled={loading}
-              className="w-full py-4 rounded-3xl font-extrabold uppercase tracking-widest text-white bg-gradient-to-r from-blue-500 to-blue-600 shadow-lg hover:scale-105 hover:from-blue-600 hover:to-blue-700 active:scale-95 transition-all flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                </svg>
-              ) : null}
-              {loading ? "Authenticating..." : "Sign In"}
-            </button>
-          </form>
-
-          <div className="pt-6 text-center border-t border-white/30">
-            <p className="text-[9px] text-gray-300 uppercase tracking-wide italic">
-              Developed by Masum Billah Maverick
-            </p>
+          <div>
+            <label className="block text-gray-400 text-xs font-semibold mb-1 uppercase">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className={`w-full p-3 rounded-xl bg-gray-700 text-white outline-none border ${
+                error ? "border-red-500" : "border-gray-600"
+              } focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition`}
+              placeholder="Enter your password"
+            />
           </div>
-        </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full p-3 rounded-xl bg-blue-600 text-white font-bold uppercase tracking-wide hover:bg-blue-500 active:scale-95 transition"
+          >
+            {loading ? "Authenticating..." : "Sign In"}
+          </button>
+        </form>
+
+        {/* Footer */}
+        <p className="text-center text-gray-500 text-[9px] mt-6 uppercase tracking-wide">
+          Developed by Masum Billah Maverick
+        </p>
       </div>
     </div>
   );
