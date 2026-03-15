@@ -3,24 +3,29 @@ import { auth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
-import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy } from "firebase/firestore";
-import { Menu, X, LayoutDashboard, Users, Package, LogOut, ClipboardList, AlertTriangle, PlusCircle } from "lucide-react";
+import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, deleteDoc } from "firebase/firestore";
+import { 
+  Menu, X, LayoutDashboard, Users, Package, LogOut, 
+  Plus, TrendingUp, AlertCircle, CheckCircle2, Trash2 
+} from "lucide-react";
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   
-  // State Management
+  // Data States
+  const [employees, setEmployees] = useState([]);
+  const [inventory, setInventory] = useState([]);
+  
+  // Form States
   const [empName, setEmpName] = useState("");
   const [empRole, setEmpRole] = useState("chef");
-  const [employees, setEmployees] = useState([]);
   const [itemName, setItemName] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("kg");
-  const [inventory, setInventory] = useState([]); 
-  const [loading, setLoading] = useState(false);
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
 
-  // রিয়েল-টাইমে ডেটা লোড করা
+  // Real-time Data Sync
   useEffect(() => {
     const unsubUsers = onSnapshot(query(collection(db, "users"), orderBy("createdAt", "desc")), (snap) => {
       setEmployees(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -36,195 +41,194 @@ export default function AdminDashboard() {
     router.push("/login");
   };
 
-  const handleAddEmployee = async (e) => {
+  const addEmployee = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await addDoc(collection(db, "users"), { name: empName, role: empRole, status: "Active", createdAt: serverTimestamp() });
+      await addDoc(collection(db, "users"), { 
+        name: empName, 
+        role: empRole, 
+        status: "Active", 
+        createdAt: serverTimestamp() 
+      });
       setEmpName("");
-    } catch (error) { alert(error.message); }
-    finally { setLoading(false); }
+    } catch (err) { alert(err.message); }
+    setLoading(false);
   };
 
-  const handleAddInventory = async (e) => {
+  const addInventory = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await addDoc(collection(db, "inventory"), { itemName, quantity: Number(quantity), unit, createdAt: serverTimestamp() });
+      await addDoc(collection(db, "inventory"), { 
+        itemName: itemName, 
+        quantity: Number(quantity), 
+        unit: unit, 
+        createdAt: serverTimestamp() 
+      });
       setItemName(""); setQuantity("");
-    } catch (error) { alert(error.message); }
-    finally { setLoading(false); }
+    } catch (err) { alert(err.message); }
+    setLoading(false);
+  };
+
+  const deleteItem = async (col, id) => {
+    if(confirm("Are you sure you want to delete this?")) {
+        await deleteDoc(doc(db, col, id));
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#F1F3F6] flex flex-col lg:flex-row font-sans text-slate-950">
+    <div className="min-h-screen bg-[#F4F7FE] flex font-sans text-slate-900">
       
-      {/* --- Mobile Header (Top Bar) --- */}
-      <div className="lg:hidden bg-[#1A1C1E] p-5 flex justify-between items-center text-white sticky top-0 z-50 shadow-xl border-b border-white/5">
-        <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-orange-600 rounded-2xl flex items-center justify-center text-white font-black shadow-lg">B</div>
-            <h1 className="text-xl font-extrabold tracking-tighter italic">Bonomaya</h1>
-        </div>
-        <button onClick={() => setSidebarOpen(true)} className="p-2.5 bg-white/5 rounded-xl border border-white/10">
-          <Menu size={22} />
-        </button>
-      </div>
+      {/* Sidebar Overlay for Mobile */}
+      {isSidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden" />
+      )}
 
-      {/* --- Sidebar (Premium Dark) --- */}
+      {/* Sidebar Navigation */}
       <aside className={`
-        fixed inset-y-0 left-0 z-[60] w-72 bg-[#1A1C1E] text-white transform transition-transform duration-500 ease-[cubic-bezier(0.87, 0, 0.13, 1)]
-        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0 lg:static lg:inset-0 shadow-2xl flex flex-col border-r border-white/5
+        fixed inset-y-0 left-0 z-50 w-72 bg-[#111C44] text-white transform transition-transform duration-300 ease-in-out
+        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:static shadow-2xl flex flex-col
       `}>
-        {/* Mobile Close Button Inside Sidebar */}
-        <div className="lg:hidden absolute top-6 right-6">
-            <button onClick={() => setSidebarOpen(false)} className="p-2 bg-white/5 rounded-full border border-white/10 text-white/70">
-                <X size={20} />
-            </button>
+        <div className="p-8 flex items-center gap-3 border-b border-white/5">
+          <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center font-black shadow-lg shadow-blue-500/30">B</div>
+          <span className="text-xl font-bold tracking-tight italic text-white">Bonomaya Admin</span>
         </div>
 
-        {/* Sidebar Header with Notch Safety for Mobile */}
-        <div className="p-10 pt-20 lg:pt-12 border-b border-white/5 text-center flex flex-col items-center gap-4">
-          <div className="w-16 h-16 bg-orange-600 rounded-3xl flex items-center justify-center text-white font-black text-3xl shadow-xl shadow-orange-950/30">B</div>
-          <div>
-            <p className="text-2xl font-black tracking-tighter text-white italic">Bonomaya</p>
-            <p className="text-[10px] font-bold text-orange-500 uppercase tracking-[0.3em] mt-1">Admin Portal</p>
-          </div>
-        </div>
-
-        {/* Sidebar Navigation */}
-        <nav className="flex-1 px-6 py-8 space-y-3 font-bold text-sm overflow-y-auto">
-          <button className="w-full text-left p-4 rounded-2xl bg-orange-600 text-white flex items-center gap-4 shadow-lg shadow-orange-950/20"><LayoutDashboard size={20}/> Dashboard</button>
-          <button className="w-full text-left p-4 rounded-2xl hover:bg-white/5 flex items-center gap-4 opacity-60 transition"><Package size={20}/> Inventory</button>
-          <button className="w-full text-left p-4 rounded-2xl hover:bg-white/5 flex items-center gap-4 opacity-60 transition"><Users size={20}/> Employees</button>
-          <button className="w-full text-left p-4 rounded-2xl hover:bg-white/5 flex items-center gap-4 opacity-60 transition"><ClipboardList size={20}/> Reports</button>
+        <nav className="p-6 space-y-2 flex-1">
+          <button className="w-full flex items-center gap-4 p-4 rounded-2xl font-bold bg-blue-500 text-white shadow-lg shadow-blue-500/30">
+            <LayoutDashboard size={20}/> Dashboard
+          </button>
+          <button className="w-full flex items-center gap-4 p-4 rounded-2xl font-bold text-slate-400 hover:bg-white/5 transition-all">
+            <Package size={20}/> Inventory
+          </button>
+          <button className="w-full flex items-center gap-4 p-4 rounded-2xl font-bold text-slate-400 hover:bg-white/5 transition-all">
+            <Users size={20}/> Employees
+          </button>
+          <button className="w-full flex items-center gap-4 p-4 rounded-2xl font-bold text-slate-400 hover:bg-white/5 transition-all">
+            <TrendingUp size={20}/> Reports
+          </button>
         </nav>
 
-        {/* Logout Section */}
-        <div className="p-8 border-t border-white/5">
-            <button onClick={handleLogout} className="w-full p-4 bg-red-950/30 hover:bg-red-950/50 text-red-300 rounded-2xl font-black uppercase text-[10px] tracking-widest text-center flex items-center justify-center gap-2 transition border border-red-900/50">
-                <LogOut size={16} /> Logout System
-            </button>
+        <div className="p-6 border-t border-white/5">
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all font-bold text-sm">
+            <LogOut size={18}/> Logout
+          </button>
         </div>
       </aside>
 
-      {/* --- Main Content Area --- */}
-      <main className="flex-1 h-screen overflow-y-auto p-5 lg:p-12 space-y-8 pb-20">
+      {/* Main Panel Area */}
+      <main className="flex-1 h-screen overflow-y-auto p-4 lg:p-8">
         
-        {/* Desktop Header Overlay */}
-        <header className="hidden lg:flex justify-between items-center mb-10 pb-6 border-b border-slate-200">
-          <div>
-            <h1 className="text-4xl font-black uppercase tracking-tighter text-slate-950 italic">Dashboard Overview</h1>
-            <p className="text-sm font-bold text-slate-500 mt-1 uppercase tracking-wider">Welcome back, Masum Billah (DIU SE)</p>
+        {/* Header bar */}
+        <header className="flex justify-between items-center mb-8">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-3 bg-white rounded-xl shadow-sm text-slate-600"><Menu/></button>
+          <div className="hidden lg:block">
+            <h1 className="text-2xl font-black text-[#1B254B] italic">Dashboard Overview</h1>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Cloud Sync Active</p>
           </div>
-          <div className="flex items-center gap-4 bg-white p-3 pr-8 rounded-full shadow-sm border border-slate-100">
-             <div className="w-12 h-12 bg-[#1A1C1E] rounded-full flex items-center justify-center text-white font-black text-xl border-4 border-slate-100 shadow-md">M</div>
-             <div>
-                <span className="text-sm font-black text-slate-900 italic">Masum Billah</span>
-                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">Super Admin</p>
-             </div>
+          <div className="flex items-center gap-4 bg-white p-2 pr-6 rounded-full shadow-sm border border-slate-100">
+            <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-700 rounded-full flex items-center justify-center text-white font-black border-2 border-white shadow-md">M</div>
+            <div className="text-xs">
+              <p className="font-black text-[#1B254B] italic">Masum Billah</p>
+              <p className="text-blue-500 font-bold uppercase tracking-tighter">DIU Student</p>
+            </div>
           </div>
         </header>
 
-        {/* Stats Cards (Responsive) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-            <div className="flex justify-between items-start mb-4">
-                <h3 className="text-slate-400 text-[11px] font-black uppercase tracking-widest">Active Team</h3>
-                <Users size={20} className="text-orange-400"/>
-            </div>
-            <p className="text-4xl font-black tracking-tight">{employees.length} <span className="text-xs font-bold italic opacity-40 uppercase">Persons</span></p>
-            <p className="text-xs text-green-600 font-bold mt-2 uppercase tracking-tighter">● Online Status</p>
+        {/* Dynamic Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-[32px] shadow-sm flex items-center gap-4">
+             <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500"><Users size={24}/></div>
+             <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Staff</p>
+                <p className="text-2xl font-black text-[#1B254B]">{employees.length}</p>
+             </div>
           </div>
-
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-            <div className="flex justify-between items-start mb-4">
-                <h3 className="text-slate-400 text-[11px] font-black uppercase tracking-widest">Stock Warnings</h3>
-                <AlertTriangle size={20} className="text-red-400"/>
-            </div>
-            <p className={`text-4xl font-black ${inventory.filter(i => i.quantity < 10).length > 0 ? 'text-red-600' : ''}`}>
-              {inventory.filter(i => i.quantity < 10).length} <span className="text-xs font-bold italic opacity-40 uppercase">Low Stock</span>
-            </p>
-            <p className="text-xs text-slate-500 font-bold mt-2 uppercase">Action required</p>
+          <div className="bg-white p-6 rounded-[32px] shadow-sm flex items-center gap-4">
+             <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500"><AlertCircle size={24}/></div>
+             <div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Low Stock</p>
+                <p className="text-2xl font-black text-red-600">{inventory.filter(i => i.quantity < 10).length}</p>
+             </div>
           </div>
-
-          <div className="bg-[#1A1C1E] p-8 rounded-[2.5rem] shadow-xl text-white sm:col-span-2 xl:col-span-1 hover:shadow-orange-950/20 hover:-translate-y-1 transition-all duration-300">
-            <div className="flex justify-between items-start mb-4">
-                <h3 className="text-orange-400 text-[11px] font-black uppercase tracking-widest">Operational</h3>
-                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-950/50"></div>
-            </div>
-            <p className="text-4xl font-black text-white italic uppercase tracking-tighter">Bonomaya LIVE</p>
-            <p className="text-xs text-slate-400 font-medium mt-2">Cloud-sync enabled</p>
+          <div className="bg-[#111C44] p-6 rounded-[32px] shadow-xl flex items-center gap-4 text-white">
+             <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center relative">
+                <CheckCircle2 size={24} className="text-green-400"/>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse border-2 border-[#111C44]"></div>
+             </div>
+             <div>
+                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Operation</p>
+                <p className="text-2xl font-black italic tracking-tighter">LIVE NOW</p>
+             </div>
           </div>
         </div>
 
-        {/* Input Sections */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mt-10">
-          {/* Employee Add Section */}
-          <section className="bg-white p-8 lg:p-10 rounded-[3rem] shadow-sm border border-slate-100">
-            <h2 className="text-xl font-black text-slate-900 uppercase italic flex items-center gap-3 mb-8 pb-4 border-b border-slate-100">
-                <PlusCircle size={22} className="text-orange-500"/> Team Management
+        {/* Forms Row */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+          {/* Employee Section */}
+          <section className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100">
+            <h2 className="text-lg font-black text-[#1B254B] mb-6 uppercase italic flex items-center gap-2">
+                <Plus size={20} className="text-blue-500"/> New Member
             </h2>
-            <form onSubmit={handleAddEmployee} className="space-y-5">
-              <input type="text" placeholder="Full Name" value={empName} onChange={(e) => setEmpName(e.target.value)} required className="w-full bg-slate-50 border border-slate-100 p-5 rounded-2xl outline-none focus:ring-2 focus:ring-orange-500 font-bold transition text-sm" />
-              <select value={empRole} onChange={(e) => setEmpRole(e.target.value)} className="w-full bg-slate-50 border border-slate-100 p-5 rounded-2xl outline-none font-bold text-sm text-slate-700 appearance-none">
+            <form onSubmit={addEmployee} className="space-y-4">
+              <input type="text" placeholder="Full Name" required value={empName} onChange={e => setEmpName(e.target.value)} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 ring-blue-500/20 border border-slate-100 font-bold text-sm" />
+              <select value={empRole} onChange={e => setEmpRole(e.target.value)} className="w-full bg-slate-50 p-4 rounded-2xl outline-none border border-slate-100 font-bold text-sm text-slate-600">
                 <option value="chef">Chef (শেফ)</option>
                 <option value="manager">Manager (ম্যানেজার)</option>
                 <option value="salesman">Salesman (বিক্রয়কর্মী)</option>
               </select>
-              <button disabled={loading} className="w-full bg-[#1A1C1E] text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-black transition shadow-lg text-xs disabled:opacity-50">Hire & Add Member</button>
+              <button disabled={loading} className="w-full bg-[#111C44] text-white p-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-600 transition-all text-xs disabled:opacity-50">Hire Member</button>
             </form>
           </section>
 
-          {/* Inventory Add Section */}
-          <section className="bg-white p-8 lg:p-10 rounded-[3rem] shadow-sm border border-slate-100">
-            <h2 className="text-xl font-black text-slate-900 uppercase italic flex items-center gap-3 mb-8 pb-4 border-b border-slate-100">
-                <Package size={22} className="text-blue-500"/> Stock Control
+          {/* Inventory Section */}
+          <section className="bg-white p-8 rounded-[32px] shadow-sm border border-slate-100">
+            <h2 className="text-lg font-black text-[#1B254B] mb-6 uppercase italic flex items-center gap-2">
+                <Package size={20} className="text-indigo-500"/> Update Stock
             </h2>
-            <form onSubmit={handleAddInventory} className="space-y-5">
-              <input type="text" placeholder="Item Name (e.g. Sugar)" value={itemName} onChange={(e) => setItemName(e.target.value)} required className="w-full bg-slate-50 border border-slate-100 p-5 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold transition text-sm" />
+            <form onSubmit={addInventory} className="space-y-4">
+              <input type="text" placeholder="Item Name" required value={itemName} onChange={e => setItemName(e.target.value)} className="w-full bg-slate-50 p-4 rounded-2xl outline-none focus:ring-2 ring-indigo-500/20 border border-slate-100 font-bold text-sm" />
               <div className="flex gap-4">
-                <input type="number" placeholder="Qty" value={quantity} onChange={(e) => setQuantity(e.target.value)} required className="flex-1 bg-slate-50 border border-slate-100 p-5 rounded-2xl outline-none font-bold text-sm" />
-                <select value={unit} onChange={(e) => setUnit(e.target.value)} className="w-28 lg:w-36 bg-slate-50 border border-slate-100 p-5 rounded-2xl outline-none font-bold text-sm text-slate-700">
+                <input type="number" placeholder="Qty" required value={quantity} onChange={e => setQuantity(e.target.value)} className="flex-1 bg-slate-50 p-4 rounded-2xl outline-none border border-slate-100 font-bold text-sm" />
+                <select value={unit} onChange={e => setUnit(e.target.value)} className="w-28 bg-slate-50 p-4 rounded-2xl outline-none border border-slate-100 font-bold text-sm text-slate-600">
                   <option value="kg">KG</option>
-                  <option value="liter">Liter</option>
                   <option value="pcs">Pcs</option>
+                  <option value="liter">Liter</option>
                 </select>
               </div>
-              <button disabled={loading} className="w-full bg-[#25282C] text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-black transition shadow-lg text-xs disabled:opacity-50">Confirm & Update Stock</button>
+              <button disabled={loading} className="w-full bg-[#111C44] text-white p-4 rounded-2xl font-black uppercase tracking-widest hover:bg-indigo-600 transition-all text-xs disabled:opacity-50">Refill Stock</button>
             </form>
           </section>
         </div>
 
-        {/* Live Inventory Status (Premium Grid) */}
-        <section className="bg-white p-8 lg:p-12 rounded-[3.5rem] shadow-sm border border-orange-100 mt-10 mb-10">
-          <div className="flex justify-between items-center mb-10 pb-4 border-b border-orange-100">
-            <h2 className="text-xl font-black text-slate-950 uppercase italic">📊 Stock Live Feed</h2>
-            <div className="hidden sm:flex items-center gap-2 bg-orange-50 p-2 px-4 rounded-full text-[10px] font-black text-orange-700 border border-orange-100 uppercase italic">
-                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                Cloud Update Enabled
-            </div>
+        {/* Inventory Status (Live Grid) */}
+        <section className="bg-white p-8 rounded-[40px] shadow-sm border border-slate-100">
+          <div className="flex justify-between items-center mb-8">
+             <h2 className="text-lg font-black text-[#1B254B] uppercase italic">Real-time Stock Feed</h2>
+             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Total {inventory.length} Items</div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-5">
-            {inventory.length > 0 ? (
-              inventory.map((item) => (
-                <div key={item.id} className={`p-6 rounded-[2rem] border-2 transition-all hover:scale-105 hover:shadow-lg flex flex-col items-center justify-center text-center ${item.quantity < 10 ? 'bg-red-50 border-red-100 text-red-700 shadow-xl shadow-red-950/5' : 'bg-[#FFF8F5] border-orange-100 text-orange-800'}`}>
-                  {item.quantity < 10 && <AlertTriangle size={16} className="mb-3 animate-bounce text-red-500" />}
-                  <p className="text-[10px] uppercase font-black tracking-widest opacity-70 mb-1.5 line-clamp-1 italic">{item.itemName}</p>
-                  <p className="text-2xl font-black tracking-tight">{item.quantity} <span className="text-[11px] uppercase font-bold opacity-70">{item.unit}</span></p>
-                  {item.quantity < 10 && <p className="text-[9px] font-black text-red-500 mt-1 uppercase tracking-tighter">Low Supply!</p>}
-                </div>
-              ))
-            ) : (
-              <div className="col-span-full py-20 text-center text-slate-300 italic font-black text-sm uppercase">Waiting for data sync...</div>
-            )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            {inventory.map(item => (
+              <div key={item.id} className="group relative p-6 rounded-3xl bg-[#F8FAFF] border border-slate-100 hover:border-blue-200 transition-all flex flex-col items-center">
+                <button onClick={() => deleteItem("inventory", item.id)} className="absolute top-2 right-2 p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                  <Trash2 size={14}/>
+                </button>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 line-clamp-1">{item.itemName}</p>
+                <p className={`text-2xl font-black ${item.quantity < 10 ? 'text-red-600' : 'text-[#1B254B]'}`}>
+                  {item.quantity} <span className="text-[10px] opacity-40 font-bold">{item.unit}</span>
+                </p>
+                {item.quantity < 10 && (
+                  <div className="mt-3 w-full bg-red-100 h-1 rounded-full overflow-hidden">
+                    <div className="bg-red-500 h-full w-1/3 animate-pulse"></div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </section>
 
       </main>
-
-      {/* Sidebar Mobile Overlay Overlay */}
-      {isSidebarOpen && <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] lg:hidden" />}
     </div>
   );
 }
