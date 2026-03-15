@@ -36,18 +36,18 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#FFF8F0] font-sans relative overflow-hidden">
-
-      {/* Subtle background shapes */}
+    <div className="flex flex-col justify-center items-center min-h-screen p-4 bg-[#FFF8F0] relative overflow-hidden font-sans">
+      {/* Animated gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-[#FFE8D6] to-[#FFF8F0] animate-pulse-slow -z-10"></div>
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-[#D9480F]/10 rounded-full blur-3xl"></div>
       <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-[#D9480F]/10 rounded-full blur-3xl"></div>
 
-      {/* Glass/White Card */}
+      {/* Login Card */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="relative w-full max-w-md bg-white shadow-lg border border-[#FFE8D6] rounded-3xl p-10 z-10"
+        className="relative w-full max-w-md bg-white shadow-xl rounded-3xl p-8 sm:p-10 z-10"
       >
         {/* Branding */}
         <div className="text-center mb-8">
@@ -57,43 +57,55 @@ export default function LoginPage() {
 
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-6">
-          <div>
-            <label className="block text-gray-800 text-xs font-semibold mb-1 uppercase">Email</label>
+          {/* Email */}
+          <div className="relative w-full">
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full p-3 rounded-xl bg-[#FFF8F0] text-gray-900 outline-none border border-[#FFE8D6] focus:ring-2 focus:ring-[#D9480F] transition"
-              placeholder="Enter your email"
+              placeholder=" "
+              className="peer w-full p-3 rounded-xl bg-[#FFF8F0] text-gray-900 outline-none border border-[#FFE8D6] focus:ring-2 focus:ring-[#D9480F] transition-all"
             />
+            <label className="absolute left-3 top-3 text-gray-400 text-xs peer-placeholder-shown:top-3 peer-placeholder-shown:text-gray-500 peer-placeholder-shown:text-sm peer-focus:top-0 peer-focus:text-[#D9480F] peer-focus:text-xs transition-all">
+              Email
+            </label>
           </div>
 
-          <div>
-            <label className="block text-gray-800 text-xs font-semibold mb-1 uppercase">Password</label>
+          {/* Password */}
+          <div className="relative w-full">
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full p-3 rounded-xl bg-[#FFF8F0] text-gray-900 outline-none border border-[#FFE8D6] focus:ring-2 focus:ring-[#D9480F] transition"
-              placeholder="Enter your password"
+              placeholder=" "
+              className="peer w-full p-3 rounded-xl bg-[#FFF8F0] text-gray-900 outline-none border border-[#FFE8D6] focus:ring-2 focus:ring-[#D9480F] transition-all"
             />
+            <label className="absolute left-3 top-3 text-gray-400 text-xs peer-placeholder-shown:top-3 peer-placeholder-shown:text-gray-500 peer-placeholder-shown:text-sm peer-focus:top-0 peer-focus:text-[#D9480F] peer-focus:text-xs transition-all">
+              Password
+            </label>
           </div>
 
+          {/* Submit Button */}
           <motion.button
             type="submit"
             disabled={loading}
             whileHover={{ scale: 1.05, boxShadow: "0 0 15px rgba(217,72,15,0.5)" }}
             whileTap={{ scale: 0.95 }}
-            className="w-full p-4 rounded-2xl bg-[#D9480F] text-white font-bold uppercase tracking-wide shadow-md"
+            className="w-full p-4 rounded-2xl bg-[#D9480F] text-white font-bold uppercase tracking-wide shadow-md relative overflow-hidden"
           >
             {loading ? "Authenticating..." : "Sign In"}
           </motion.button>
+
+          {/* Forgot Password */}
+          <p className="text-center text-gray-500 text-xs mt-2 cursor-pointer hover:text-[#D9480F] transition-colors">
+            Forgot Password?
+          </p>
         </form>
 
         {/* Footer */}
-        <p className="text-center text-gray-700 text-[10px] mt-6 tracking-wide">
+        <p className="text-center text-gray-400 text-[10px] mt-6 tracking-wide">
           Developed by Masum Billah Maverick
         </p>
       </motion.div>
