@@ -49,11 +49,11 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-950 font-sans px-4">
 
       {/* Compact Login Card */}
-      <div className={`w-full max-w-sm rounded-2xl shadow-xl bg-gray-900/90 backdrop-blur-sm border border-gray-800
-        ${isMobile ? "px-5 py-10" : "px-6 py-12"}`}>
+      <div className={`w-full max-w-xs rounded-2xl shadow-lg bg-gray-900/90 backdrop-blur-sm border border-gray-800
+        ${isMobile ? "px-4 py-8" : "px-6 py-10"}`}>
 
         {/* Branding */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-4">
           <h1 className={`font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-200 to-gray-400 text-3xl sm:text-4xl`}>
             Bonomaya
           </h1>
@@ -62,8 +62,8 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Boxed Welcome Message */}
-        <div className="text-center mb-5 border border-gray-700 rounded-xl py-3 px-4 bg-gray-800 shadow-sm">
+        {/* Welcome Box */}
+        <div className="text-center mb-4 border border-gray-700 rounded-lg py-2 px-3 bg-gray-800 shadow-sm">
           <h2 className="font-bold text-gray-100 text-lg sm:text-xl tracking-wide uppercase">
             Welcome
           </h2>
@@ -73,7 +73,7 @@ export default function LoginPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-3">
           <div>
             <label className="block text-gray-400 text-sm font-semibold mb-1 uppercase tracking-wide">Email</label>
             <input
@@ -112,7 +112,7 @@ export default function LoginPage() {
         </form>
 
         {/* Footer */}
-        <p className="text-center text-gray-500 text-[9px] sm:text-[10px] mt-4 uppercase tracking-wide font-medium">
+        <p className="text-center text-gray-500 text-[9px] sm:text-[10px] mt-3 uppercase tracking-wide font-medium">
           Developed by Masum Billah Maverick
         </p>
       </div>
