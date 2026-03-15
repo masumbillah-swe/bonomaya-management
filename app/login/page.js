@@ -4,7 +4,7 @@ import { auth, db } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
-import { motion, useAnimation } from "framer-motion";
+import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -47,7 +47,7 @@ export default function LoginPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Particles (only for desktop)
+  // Particles (desktop only)
   const [particles, setParticles] = useState([]);
   useEffect(() => {
     if (!isMobile) {
@@ -97,24 +97,24 @@ export default function LoginPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
         whileHover={!isMobile ? { scale: 1.03, boxShadow: "0 15px 40px rgba(59,130,246,0.6)" } : {}}
-        className="w-full max-w-md px-6 sm:px-10 py-10 sm:py-12 rounded-3xl border border-gray-700 shadow-2xl transition-all duration-300 bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-md relative z-10"
+        className="w-full max-w-md px-6 sm:px-10 py-12 sm:py-16 rounded-3xl border border-gray-700 shadow-2xl transition-all duration-300 bg-gradient-to-br from-gray-800/80 to-gray-900/80 backdrop-blur-md relative z-10"
       >
         {/* Branding */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-wide bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+        <div className="text-center mb-10">
+          <h1 className={`font-extrabold tracking-wide bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent ${isMobile ? "text-4xl" : "text-5xl sm:text-6xl"}`}>
             Bonomaya
           </h1>
-          <p className="text-sm sm:text-base text-gray-300 uppercase tracking-wider font-semibold mt-1">
+          <p className={`text-gray-300 uppercase tracking-wider font-semibold mt-2 ${isMobile ? "text-base" : "text-lg sm:text-xl"}`}>
             Smart Management System
           </p>
         </div>
 
         {/* Welcome Message */}
-        <div className="text-center mb-6">
-          <h2 className="text-lg sm:text-2xl font-extrabold tracking-wide uppercase bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
+        <div className="text-center mb-8">
+          <h2 className={`font-extrabold tracking-wide uppercase bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent ${isMobile ? "text-lg" : "text-2xl sm:text-3xl"}`}>
             Welcome
           </h2>
-          <p className="text-gray-300 text-sm sm:text-base tracking-wide">Login to your Smart Portal</p>
+          <p className={`text-gray-300 ${isMobile ? "text-sm" : "text-base"} tracking-wide`}>Login to your Smart Portal</p>
           <div className="border-t border-gray-600 mt-4 w-16 mx-auto"></div>
         </div>
 
@@ -127,7 +127,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className={`w-full p-3 sm:p-4 rounded-xl bg-gray-700 text-white outline-none border ${
+              className={`w-full p-4 rounded-xl bg-gray-700 text-white outline-none border ${
                 error ? "border-red-500" : "border-gray-600"
               } focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition`}
               placeholder="Enter your corporate email"
@@ -141,7 +141,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className={`w-full p-3 sm:p-4 rounded-xl bg-gray-700 text-white outline-none border ${
+              className={`w-full p-4 rounded-xl bg-gray-700 text-white outline-none border ${
                 error ? "border-red-500" : "border-gray-600"
               } focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition`}
               placeholder="Enter your password"
@@ -152,7 +152,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full p-4 rounded-xl font-semibold uppercase tracking-wide text-white transition-all duration-300 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_200%] hover:animate-gradient-xy hover:shadow-lg active:scale-95 cursor-pointer"
+            className="w-full p-4 sm:p-5 rounded-xl font-semibold uppercase tracking-wide text-white transition-all duration-300 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-700 bg-[length:200%_200%] hover:animate-gradient-xy hover:shadow-lg active:scale-95 cursor-pointer"
           >
             {loading ? "Authenticating..." : "Sign In"}
           </button>
