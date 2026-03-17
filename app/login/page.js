@@ -1,21 +1,20 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
+import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const router = useRouter();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(false);
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -31,92 +30,123 @@ export default function LoginPage() {
         throw new Error("User role not found!");
       }
     } catch (err) {
-      setError(true);
       alert("Invalid Email or Password!");
     }
     setLoading(false);
   };
 
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 px-4 font-sans">
+    <div className="flex min-h-screen font-sans">
 
-      {/* ERP Card */}
-      <div className={`w-full max-w-xs rounded-3xl bg-gray-900/95 backdrop-blur-md border border-gray-800 shadow-2xl
-        ${isMobile ? "px-4 py-8" : "px-6 py-10"}`}>
-
-        {/* Branding */}
-        <div className="text-center mb-6">
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-100">
+      {/* LEFT SIDE (Desktop only) */}
+      <div className="hidden md:flex flex-col justify-center items-center w-1/2 bg-gradient-to-br from-[#D9480F] to-[#FF6B3F] text-white p-12 relative overflow-hidden">
+        
+        <motion.div
+          initial={{ opacity: 0, x: -40 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8 }}
+          className="z-10 max-w-md"
+        >
+          <h1 className="text-5xl font-extrabold tracking-tight mb-4">
             Bonomaya
           </h1>
-          <p className="text-gray-400 uppercase tracking-wide mt-1 text-xs sm:text-sm font-semibold">
+          <p className="uppercase tracking-widest text-sm opacity-80 mb-6">
             Smart Management System
           </p>
-        </div>
 
-        {/* Welcome Box */}
-        <div className="text-center mb-5 border border-gray-700 rounded-xl py-2 px-3 bg-gray-800 shadow-sm">
-          <h2 className="font-bold text-gray-100 text-lg sm:text-xl tracking-wide uppercase">
-            Welcome
-          </h2>
-          <p className="text-gray-400 mt-1 text-xs sm:text-sm">
-            Login to your Smart Portal
+          <p className="text-lg leading-relaxed opacity-90">
+            Streamline operations, manage your team, and monitor business performance 
+            through a centralized and intelligent platform designed for modern enterprises.
           </p>
-        </div>
+        </motion.div>
 
-        {/* Form */}
-        <form onSubmit={handleLogin} className="space-y-3">
-          <div>
-            <label className="block text-gray-400 text-sm font-semibold mb-1 uppercase tracking-wide">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className={`w-full p-3 rounded-lg bg-gray-800 text-gray-100 outline-none border ${
-                error ? "border-red-500" : "border-gray-700"
-              } focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-400`}
-              placeholder="Enter your corporate email"
-            />
-          </div>
-
-          <div>
-            <label className="block text-gray-400 text-sm font-semibold mb-1 uppercase tracking-wide">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className={`w-full p-3 rounded-lg bg-gray-800 text-gray-100 outline-none border ${
-                error ? "border-red-500" : "border-gray-700"
-              } focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-400`}
-              placeholder="Enter your password"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full p-3 rounded-lg font-semibold uppercase tracking-wide text-white bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-600 hover:to-blue-400 active:scale-95 transition-all"
-          >
-            {loading ? "Authenticating..." : "Sign In"}
-          </button>
-        </form>
-
-        {/* Footer */}
-        <p className="text-center text-gray-500 text-[9px] sm:text-[10px] mt-3 uppercase tracking-wide font-medium">
-          Developed by Masum Billah Maverick
-        </p>
+        {/* background glow */}
+        <div className="absolute w-96 h-96 bg-white/10 rounded-full blur-3xl -top-20 -left-20"></div>
+        <div className="absolute w-80 h-80 bg-black/10 rounded-full blur-3xl -bottom-20 -right-20"></div>
       </div>
 
+      {/* RIGHT SIDE */}
+      <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-[#FFF8F0] p-6">
+
+        {/* Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7 }}
+          className="w-full max-w-md bg-white shadow-xl rounded-2xl p-8"
+        >
+
+          {/* Mobile Branding */}
+          <div className="md:hidden text-center mb-6">
+            <h1 className="text-2xl font-bold text-[#D9480F]">
+              Bonomaya
+            </h1>
+            <p className="text-xs text-gray-500">
+              Smart Management System
+            </p>
+          </div>
+
+          {/* Header */}
+          <div className="mb-6 text-center md:text-left">
+            <h2 className="text-2xl font-bold text-gray-800">
+              Welcome Back
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Sign in to access your dashboard
+            </p>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleLogin} className="space-y-5">
+
+            {/* Email */}
+            <div>
+              <label className="text-xs text-gray-500">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full mt-1 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#D9480F]/40 focus:border-[#D9480F] outline-none"
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="text-xs text-gray-500">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full mt-1 p-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#D9480F]/40 focus:border-[#D9480F] outline-none"
+              />
+            </div>
+
+            {/* Button */}
+            <motion.button
+              type="submit"
+              disabled={loading}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="w-full p-3 rounded-lg bg-[#D9480F] text-white font-semibold tracking-wide shadow-md flex justify-center items-center"
+            >
+              {loading ? (
+                <div className="flex items-center">
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                  Authenticating...
+                </div>
+              ) : "Sign In"}
+            </motion.button>
+          </form>
+
+          {/* Footer */}
+          <p className="text-center text-gray-400 text-xs mt-6">
+            Developed by Masum Billah Maverick
+          </p>
+
+        </motion.div>
+      </div>
     </div>
   );
 }
