@@ -2,212 +2,220 @@
 import { auth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signOut } from "firebase/auth";
-import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, deleteDoc } from "firebase/firestore";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, LayoutDashboard, Users, Package, LogOut, Plus, Trash2, ChevronRight } from "lucide-react";
+import { collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
+import { 
+  Menu, X, LayoutDashboard, Package, FileText, LogOut, TrendingUp, Truck, 
+  Calendar, ShoppingBag, AlertTriangle, Users, Activity, BarChart3, ArrowUpRight
+} from "lucide-react";
+import * as XLSX from "xlsx";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  LineChart, Line 
+} from "recharts";
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  
-  // Data States
-  const [employees, setEmployees] = useState([]);
-  const [inventory, setInventory] = useState([]);
-  
-  // Form States
-  const [empName, setEmpName] = useState("");
-  const [empRole, setEmpRole] = useState("Chef");
-  const [itemName, setItemName] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [unit, setUnit] = useState("kg");
+  const [activeSection, setActiveSection] = useState("dashboard"); 
+  const [inventory, setInventory] = useState([]); 
+  const [purchases, setPurchases] = useState([]); 
+  const [productions, setProductions] = useState([]);
+  const [sales, setSales] = useState([]);
+  const [wastage, setWastage] = useState([]);
 
   useEffect(() => {
-    const unsubUsers = onSnapshot(query(collection(db, "users"), orderBy("createdAt", "desc")), (snap) => {
-      setEmployees(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-    const unsubInv = onSnapshot(query(collection(db, "inventory"), orderBy("itemName", "asc")), (snap) => {
-      setInventory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-    return () => { unsubUsers(); unsubInv(); };
+    // সব ডাটা একসাথে স্ট্রিম করা হচ্ছে
+    onSnapshot(query(collection(db, "inventory"), orderBy("itemName", "asc")), (s) => setInventory(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+    onSnapshot(query(collection(db, "purchases"), orderBy("createdAt", "desc")), (s) => setPurchases(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+    onSnapshot(query(collection(db, "productions"), orderBy("createdAt", "desc"), limit(20)), (s) => setProductions(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+    onSnapshot(query(collection(db, "sales"), orderBy("createdAt", "desc")), (s) => setSales(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+    onSnapshot(query(collection(db, "wastage"), orderBy("createdAt", "desc")), (s) => setWastage(s.docs.map(d => ({ id: d.id, ...d.data() }))));
   }, []);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push("/login");
-  };
+  const totalExpense = purchases.reduce((a, c) => a + Number(c.totalPrice || 0), 0);
+  const totalWastage = wastage.length;
 
-  const addEmployee = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await addDoc(collection(db, "users"), { name: empName, role: empRole, status: "Active", createdAt: serverTimestamp() });
-      setEmpName("");
-    } catch (err) { alert(err.message); }
-    setLoading(false);
-  };
-
-  const addInventory = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      await addDoc(collection(db, "inventory"), { itemName, quantity: Number(quantity), unit, createdAt: serverTimestamp() });
-      setItemName(""); setQuantity("");
-    } catch (err) { alert(err.message); }
-    setLoading(false);
-  };
-
-  const deleteEntry = async (col, id) => {
-    if(confirm("Confirm Delete?")) await deleteDoc(doc(db, col, id));
+  const exportMasterReport = () => {
+    const ws = XLSX.utils.json_to_sheet(purchases);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Master_Report");
+    XLSX.writeFile(wb, "Bonomaya_Full_Report.xlsx");
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] flex font-sans text-gray-800">
+    <div className="min-h-screen bg-[#FDFCF0] flex flex-col lg:flex-row text-slate-900 font-sans tracking-tight">
       
-      {/* SIDEBAR (Desktop Split Logic) */}
-      <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-[#D9480F] to-[#FF6B3F] text-white transform transition-transform duration-300 ease-in-out
-        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:static flex flex-col shadow-2xl
-      `}>
-        <div className="p-8 border-b border-white/10">
-          <h1 className="text-3xl font-extrabold tracking-tight italic">Bonomaya</h1>
-          <p className="text-[10px] uppercase tracking-[0.3em] opacity-70 mt-1">Smart Admin</p>
-        </div>
-
-        <nav className="flex-1 p-6 space-y-2 mt-4">
-          <button className="w-full flex items-center justify-between p-4 rounded-xl bg-white/10 font-bold transition-all border border-white/5 shadow-lg">
-            <span className="flex items-center gap-4"><LayoutDashboard size={20}/> Dashboard</span>
-            <ChevronRight size={16} />
-          </button>
-          <button className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 font-semibold transition-all opacity-80">
-            <Package size={20}/> Inventory
-          </button>
-          <button className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 font-semibold transition-all opacity-80">
-            <Users size={20}/> Team Management
-          </button>
-        </nav>
-
-        <div className="p-6">
-          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 p-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all font-bold text-sm">
-            <LogOut size={18}/> Sign Out
-          </button>
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT AREA */}
-      <div className="flex-1 flex flex-col h-screen overflow-y-auto">
-        
-        {/* Top Navbar */}
-        <header className="bg-white/80 backdrop-blur-md p-5 flex justify-between items-center sticky top-0 z-40 border-b border-gray-200 shadow-sm">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 text-[#D9480F]"><Menu/></button>
-            <h2 className="text-xl font-bold text-gray-700 hidden md:block">System Overview</h2>
-          </div>
-          
-          <div className="flex items-center gap-3 bg-gray-50 p-2 pr-6 rounded-full border border-gray-200">
-            <div className="w-9 h-9 bg-gradient-to-r from-[#D9480F] to-[#FF6B3F] rounded-full flex items-center justify-center text-white font-black text-sm shadow-md">M</div>
-            <div className="text-xs">
-              <p className="font-bold text-gray-800 tracking-tighter">Masum Billah</p>
-              <p className="text-[#D9480F] font-semibold uppercase tracking-widest text-[8px]">DIU Maverick</p>
-            </div>
-          </div>
-        </header>
-
-        {/* Content Body */}
-        <main className="p-4 md:p-10 space-y-8 pb-24">
-          
-          {/* Stats Cards (White shadow style) */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <motion.div whileHover={{ y: -5 }} className="bg-white p-8 rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 flex items-center gap-6">
-              <div className="w-14 h-14 bg-[#FFF8F0] rounded-2xl flex items-center justify-center text-[#D9480F] shadow-inner"><Users size={28}/></div>
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Total Team</p>
-                <p className="text-3xl font-black text-gray-800">{employees.length}</p>
-              </div>
-            </motion.div>
-
-            <motion.div whileHover={{ y: -5 }} className="bg-white p-8 rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 flex items-center gap-6">
-              <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center text-red-500 shadow-inner"><Package size={28}/></div>
-              <div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Low Supply</p>
-                <p className={`text-3xl font-black ${inventory.filter(i => i.quantity < 10).length > 0 ? 'text-red-500 animate-pulse' : 'text-gray-800'}`}>
-                  {inventory.filter(i => i.quantity < 10).length}
-                </p>
-              </div>
-            </motion.div>
-
-            <motion.div whileHover={{ y: -5 }} className="bg-[#D9480F] p-8 rounded-2xl shadow-2xl shadow-[#D9480F]/20 text-white flex items-center gap-6">
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center"><LayoutDashboard size={28}/></div>
-              <div>
-                <p className="text-xs font-bold text-white/60 uppercase tracking-widest mb-1">Status</p>
-                <p className="text-2xl font-black italic tracking-tighter uppercase">Live Sync</p>
-              </div>
-            </motion.div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Forms - Matching Login Inputs */}
-            <section className="bg-white p-8 md:p-10 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100">
-              <h3 className="text-sm font-black text-[#D9480F] uppercase tracking-[0.2em] mb-8 border-b pb-4">Add New Employee</h3>
-              <form onSubmit={addEmployee} className="space-y-5">
-                <input type="text" placeholder="Member Name" required value={empName} onChange={e => setEmpName(e.target.value)} className="w-full p-4 rounded-xl border border-gray-200 focus:ring-2 focus:ring-[#D9480F]/40 focus:border-[#D9480F] outline-none font-semibold text-sm transition-all" />
-                <select value={empRole} onChange={e => setEmpRole(e.target.value)} className="w-full p-4 rounded-xl border border-gray-200 focus:border-[#D9480F] outline-none font-semibold text-sm text-gray-600 bg-white">
-                  <option value="Chef">Chef (শেফ)</option>
-                  <option value="Manager">Manager (ম্যানেজার)</option>
-                  <option value="Salesman">Salesman (বিক্রয়কর্মী)</option>
-                </select>
-                <button disabled={loading} className="w-full p-4 rounded-xl bg-[#D9480F] text-white font-bold uppercase tracking-widest shadow-lg shadow-[#D9480F]/20 active:scale-95 transition-all text-xs">Confirm Entry</button>
-              </form>
-            </section>
-
-            <section className="bg-white p-8 md:p-10 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100">
-              <h3 className="text-sm font-black text-[#D9480F] uppercase tracking-[0.2em] mb-8 border-b pb-4">Refill Inventory</h3>
-              <form onSubmit={addInventory} className="space-y-5">
-                <input type="text" placeholder="Item Name" required value={itemName} onChange={e => setItemName(e.target.value)} className="w-full p-4 rounded-xl border border-gray-200 focus:border-[#D9480F] outline-none font-semibold text-sm transition-all" />
-                <div className="flex gap-4">
-                  <input type="number" placeholder="Qty" required value={quantity} onChange={e => setQuantity(e.target.value)} className="flex-1 p-4 rounded-xl border border-gray-200 focus:border-[#D9480F] outline-none font-semibold text-sm transition-all" />
-                  <select value={unit} onChange={e => setUnit(e.target.value)} className="w-28 p-4 rounded-xl border border-gray-200 font-bold text-xs bg-white text-gray-500 uppercase tracking-widest">
-                    <option value="kg">KG</option>
-                    <option value="pcs">Pcs</option>
-                    <option value="ltr">Ltr</option>
-                  </select>
-                </div>
-                <button disabled={loading} className="w-full p-4 rounded-xl bg-gray-800 text-white font-bold uppercase tracking-widest shadow-lg active:scale-95 transition-all text-xs">Update Stock</button>
-              </form>
-            </section>
-          </div>
-
-          {/* Table Feed (Clean Split Logic) */}
-          <section className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden mb-10">
-            <div className="p-6 border-b bg-gray-50 flex justify-between items-center">
-              <h2 className="text-xs font-black text-gray-500 uppercase tracking-widest">Live Inventory Feed</h2>
-              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-lg shadow-green-200"></div>
-            </div>
-            
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-6 p-8">
-              {inventory.map((item) => (
-                <div key={item.id} className="relative group p-6 rounded-2xl bg-gray-50 border border-gray-100 flex flex-col items-center hover:bg-white hover:shadow-xl transition-all duration-300">
-                  <button onClick={() => deleteEntry("inventory", item.id)} className="absolute top-2 right-2 p-1.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={14}/></button>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-2">{item.itemName}</p>
-                  <p className={`text-2xl font-black ${item.quantity < 10 ? 'text-red-500' : 'text-gray-800'}`}>{item.quantity} <span className="text-[10px] opacity-40 uppercase">{item.unit}</span></p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-        </main>
-
-        {/* Footer */}
-        <p className="text-center text-gray-400 text-[10px] pb-10 uppercase tracking-widest">
-          Designed for Bonomaya Logistics • Maverick
-        </p>
+      {/* মোবাইল বার */}
+      <div className="lg:hidden bg-[#1A1A1A] p-4 flex justify-between items-center sticky top-0 z-[120] shadow-md">
+        <h1 className="text-white font-bold italic tracking-tighter uppercase">Bonomaya Admin</h1>
+        <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="text-white p-1">
+          {isSidebarOpen ? <X size={28} /> : <Menu size={28} />}
+        </button>
       </div>
 
-      {/* Mobile Close Logic Overlay */}
-      {isSidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden" />
-      )}
+      {/* সাইডবার */}
+      <aside className={`fixed inset-y-0 left-0 z-[130] w-72 lg:w-64 bg-[#1A1A1A] text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static flex flex-col shadow-2xl ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="p-8 text-center border-b border-white/5">
+          <div className="bg-red-600 w-12 h-12 rounded-full mx-auto flex items-center justify-center text-2xl font-bold mb-2 shadow-lg italic">A</div>
+          <h2 className="text-lg font-bold italic tracking-tighter uppercase">এডমিন প্যানেল</h2>
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1 font-bold">বনমায়া কন্ট্রোল</p>
+        </div>
+        <nav className="flex-1 p-4 space-y-2 font-sans">
+          <button onClick={() => {setActiveSection("dashboard"); setSidebarOpen(false);}} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'dashboard' ? 'bg-red-600' : 'hover:bg-white/5 opacity-70'}`}><LayoutDashboard size={20} /> ড্যাশবোর্ড</button>
+          <button onClick={() => {setActiveSection("audit"); setSidebarOpen(false);}} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'audit' ? 'bg-red-600' : 'hover:bg-white/5 opacity-70'}`}><Activity size={20} /> লাইভ অডিট</button>
+          <button onClick={() => {setActiveSection("inventory"); setSidebarOpen(false);}} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'inventory' ? 'bg-red-600' : 'hover:bg-white/5 opacity-70'}`}><Package size={20} /> স্টক লেজার</button>
+          <button onClick={() => {setActiveSection("reports"); setSidebarOpen(false);}} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'reports' ? 'bg-red-600' : 'hover:bg-white/5 opacity-70'}`}><FileText size={20} /> মাস্টার রিপোর্ট</button>
+        </nav>
+        <button onClick={() => auth.signOut().then(() => router.push("/login"))} className="p-4 bg-red-900/20 text-red-400 hover:bg-red-900 hover:text-white flex gap-2 justify-center mt-auto border-t border-white/5 transition-all font-black uppercase text-[10px]"><LogOut size={18} /> লগআউট</button>
+      </aside>
+
+      {isSidebarOpen && <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/60 z-[125] lg:hidden backdrop-blur-sm" />}
+
+      {/* মেইন কন্টেন্ট */}
+      <main className="flex-1 p-4 lg:p-10 overflow-y-auto h-screen w-full font-sans font-bold uppercase tracking-tighter">
+        
+        {/* ১. এডমিন ড্যাশবোর্ড ওভারভিউ */}
+        {activeSection === "dashboard" && (
+          <div className="space-y-8 animate-in fade-in duration-700">
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div>
+                    <h2 className="text-3xl font-black text-slate-800 italic uppercase tracking-tighter">সিস্টেম কন্ট্রোল</h2>
+                    <p className="text-slate-400 text-xs font-bold mt-1">বনমায়ার সকল কার্যক্রমের সারসংক্ষেপ</p>
+                </div>
+                <div className="flex gap-2">
+                   <div className="bg-green-50 text-green-600 px-4 py-2 rounded-xl text-[10px]">সিস্টেম অনলাইন</div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-6 rounded-3xl shadow-sm border-b-4 border-blue-500">
+                    <p className="text-[10px] text-slate-400 mb-1">মোট কেনাকাটা</p>
+                    <p className="text-2xl font-black text-slate-800">৳{totalExpense.toLocaleString()}</p>
+                </div>
+                <div className="bg-white p-6 rounded-3xl shadow-sm border-b-4 border-orange-500">
+                    <p className="text-[10px] text-slate-400 mb-1">প্রোডাকশন আইটেম</p>
+                    <p className="text-2xl font-black text-slate-800">{productions.length} টি</p>
+                </div>
+                <div className="bg-white p-6 rounded-3xl shadow-sm border-b-4 border-red-500">
+                    <p className="text-[10px] text-slate-400 mb-1">ওয়েস্টেজ (লস)</p>
+                    <p className="text-2xl font-black text-red-600">{totalWastage} এন্ট্রি</p>
+                </div>
+                <div className="bg-[#1A1A1A] text-white p-6 rounded-3xl shadow-lg border-b-4 border-red-600">
+                    <p className="text-[10px] text-gray-400 mb-1">এক্টিভ ইউজার</p>
+                    <p className="text-2xl font-black text-red-500 flex items-center gap-2"><Users size={20}/> ৩ জন</p>
+                </div>
+            </div>
+
+            {/* গ্রাফ সেকশন */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border h-[400px]">
+                    <h3 className="text-sm mb-6 flex items-center gap-2"><BarChart3 size={18} /> প্রোডাকশন বনাম সেলস</h3>
+                    <ResponsiveContainer width="100%" height="90%">
+                        <BarChart data={productions.slice(0, 7)}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="itemName" hide />
+                            <Tooltip />
+                            <Bar dataKey="quantity" fill="#EF4444" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border h-[400px]">
+                    <h3 className="text-sm mb-6 flex items-center gap-2"><ArrowUpRight size={18} /> এক্সপেন্স ট্রেন্ড</h3>
+                    <ResponsiveContainer width="100%" height="90%">
+                        <LineChart data={purchases.slice(0, 10).reverse()}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <Tooltip />
+                            <Line type="monotone" dataKey="totalPrice" stroke="#EF4444" strokeWidth={3} dot={{fill: '#EF4444'}} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+          </div>
+        )}
+
+        {/* ২. লাইভ অডিট - শেফ ও সেলসম্যানের কাজ দেখা */}
+        {activeSection === "audit" && (
+          <div className="space-y-6 animate-in slide-in-from-right-4">
+             <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <section className="bg-white rounded-[2.5rem] shadow-sm border overflow-hidden">
+                    <div className="p-6 bg-orange-50 border-b font-black italic text-orange-700">কিচেন অ্যাক্টিভিটি (শেফ)</div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs uppercase">
+                            <thead><tr className="bg-slate-100"><th className="p-4">আইটেম</th><th className="p-4">পরিমাণ</th><th className="p-4">অবস্থা</th></tr></thead>
+                            <tbody>
+                                {productions.map(p => (
+                                    <tr key={p.id} className="border-b">
+                                        <td className="p-4 font-black">{p.itemName}</td>
+                                        <td className="p-4">{p.quantity} পিস</td>
+                                        <td className="p-4"><span className={`px-2 py-1 rounded-full text-[9px] ${p.status === 'accepted' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{p.status}</span></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section className="bg-white rounded-[2.5rem] shadow-sm border overflow-hidden">
+                    <div className="p-6 bg-red-50 border-b font-black italic text-red-700">লস ও ওয়েস্টেজ অডিট</div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs uppercase">
+                            <thead><tr className="bg-slate-100"><th className="p-4">আইটেম</th><th className="p-4 text-center">পরিমাণ</th><th className="p-4">কারণ</th></tr></thead>
+                            <tbody>
+                                {wastage.map(w => (
+                                    <tr key={w.id} className="border-b">
+                                        <td className="p-4 font-black">{w.itemName}</td>
+                                        <td className="p-4 text-center text-red-600">{w.quantity} পিস</td>
+                                        <td className="p-4 text-slate-400 font-medium">{w.reason}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+             </div>
+          </div>
+        )}
+
+        {/* ৩. স্টক লেজার (ম্যানেজার প্যানেলের মতো কিন্তু ভিউ অনলি) */}
+        {activeSection === "inventory" && (
+            <div className="bg-white rounded-[2.5rem] shadow-sm border overflow-hidden">
+                <div className="p-7 bg-slate-900 text-white flex justify-between items-center font-sans">
+                    <h2 className="text-xl font-black italic uppercase">মাস্টার ইনভেন্টরি অডিট</h2>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs uppercase font-bold">
+                        <thead className="bg-slate-100 text-slate-500">
+                            <tr><th className="p-5">আইটেম</th><th className="p-5 text-center">বর্তমান স্টক</th><th className="p-5 text-right">মোট খরচ</th><th className="p-5 text-center">অবস্থা</th></tr>
+                        </thead>
+                        <tbody>
+                            {inventory.map(item => (
+                                <tr key={item.id} className="border-b hover:bg-slate-50 transition-all font-sans">
+                                    <td className="p-5 font-black text-slate-800">{item.itemName}</td>
+                                    <td className="p-5 text-center">{item.quantity} {item.unit}</td>
+                                    <td className="p-5 text-right font-black text-blue-600">৳{item.totalInvestment?.toLocaleString()}</td>
+                                    <td className="p-5 text-center">
+                                        {item.quantity < 10 ? <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-[9px]">স্টক কম</span> : <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-[9px]">পর্যাপ্ত</span>}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        )}
+
+        {/* ৪. রিপোর্ট ডাউনলোড */}
+        {activeSection === "reports" && (
+            <div className="bg-slate-900 p-12 rounded-[3.5rem] text-center text-white border-4 border-red-600/20">
+                <FileText size={60} className="mx-auto mb-6 text-red-500" />
+                <h2 className="text-3xl font-black italic uppercase tracking-tighter">মাস্টার ডাটা এক্সপোর্ট</h2>
+                <p className="text-gray-400 mt-2 font-sans mb-10 lowercase">সকল ট্রানজাকশন এবং ইনভেন্টরি হিস্ট্রি একসাথে ডাউনলোড করুন</p>
+                <button onClick={exportMasterReport} className="bg-white text-slate-900 px-10 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">Download All Data (.xlsx)</button>
+            </div>
+        )}
+
+        <p className="text-center text-[10px] font-bold text-slate-300 tracking-[0.4em] uppercase mt-12 italic">Bonomaya Admin Command v4.0</p>
+      </main>
     </div>
   );
 }
