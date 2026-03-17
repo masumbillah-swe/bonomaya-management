@@ -5,10 +5,12 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { doc, getDoc } from "firebase/firestore";
 import { motion } from "framer-motion";
+import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -21,177 +23,123 @@ export default function LoginPage() {
 
       const userDoc = await getDoc(doc(db, "users", user.uid));
       if (userDoc.exists()) {
-        const role = userDoc.data().role;
-        if (role === "Admin") router.push("/admin");
-        else if (role === "Manager") router.push("/manager");
-        else if (role === "Chef") router.push("/chef");
-        else if (role === "Salesman") router.push("/salesman");
+        const role = userDoc.data().role?.toLowerCase();
+        if (role === "admin") router.push("/admin");
+        else if (role === "manager") router.push("/manager");
+        else if (role === "chef") router.push("/chef");
+        else if (role === "salesman") router.push("/salesman");
+        else router.push("/dashboard");
       } else {
-        throw new Error("User role not found!");
+        throw new Error("User role not assigned!");
       }
     } catch (err) {
-      alert("Invalid Email or Password!");
+      alert("Error: " + err.message);
     }
     setLoading(false);
   };
 
   return (
-    <div className="flex min-h-screen font-sans overflow-hidden">
+    <div className="flex min-h-screen font-sans overflow-hidden bg-[#0F0F0F]">
 
-      {/* LEFT SIDE (Desktop only) */}
-      <div className="hidden md:flex flex-col justify-center items-center w-1/2 bg-gradient-to-br from-[#D9480F] to-[#FF6B3F] text-white p-12 relative overflow-hidden">
-        
-        {/* --- PREMIUM CIRCULAR ANIMATIONS --- */}
-        
-        {/* 1. Main Rotating Glass Orb (Top Left) */}
-        <motion.div 
-          animate={{ 
-            rotate: 360,
-            y: [0, 20, 0],
-            x: [0, 10, 0]
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute w-[550px] h-[550px] border border-white/10 rounded-full -top-24 -left-24 flex items-center justify-center pointer-events-none"
-        >
-          <div className="w-[450px] h-[450px] bg-white/5 rounded-full backdrop-blur-[2px]" />
-        </motion.div>
+      {/* --- LEFT SIDE: পিসিতে দেখাবে (Typography) --- */}
+      <div className="hidden md:flex flex-col justify-center w-1/2 p-20 relative overflow-hidden bg-[#0A0A0A] border-r border-white/5">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#D9480F]/5 rounded-full blur-[150px] pointer-events-none"></div>
 
-        {/* 2. Pulsing Shadow Orb (Bottom Right) */}
-        <motion.div 
-          animate={{ 
-            scale: [1, 1.15, 1],
-            opacity: [0.2, 0.4, 0.2]
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute w-96 h-96 bg-black/20 rounded-full bottom-[-50px] right-[-50px] blur-3xl pointer-events-none"
-        />
+        <div className="relative z-10">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
+            <h1 className="text-sm font-black tracking-[0.8em] text-[#D9480F] uppercase mb-4 italic">Bonomaya</h1>
+            {/* নাম পরিবর্তন করা হয়েছে */}
+            <h2 className="text-7xl font-black text-white leading-[0.9] tracking-tighter italic uppercase">
+              Smart <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D9480F] to-[#FF8C61]">Management</span> <br />
+              System
+            </h2>
+            <div className="w-20 h-1 bg-[#D9480F] my-10 rounded-full"></div>
+            <p className="text-slate-400 text-lg max-w-sm font-medium leading-relaxed">
+              Experience a centralized operations ecosystem designed for modern food enterprises.
+            </p>
+          </motion.div>
 
-        {/* 3. Small Floating Bubble (Center Right) */}
-        <motion.div 
-          animate={{ 
-            y: [0, -60, 0],
-            x: [0, 30, 0],
-            scale: [1, 1.1, 1]
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute w-32 h-32 bg-white/10 rounded-full top-1/3 right-10 backdrop-blur-md border border-white/20 pointer-events-none"
-        />
-
-        {/* 4. Large Faint Ring */}
-        <motion.div 
-           animate={{ opacity: [0.1, 0.2, 0.1] }}
-           transition={{ duration: 10, repeat: Infinity }}
-           className="absolute w-[800px] h-[800px] border-[0.5px] border-white/5 rounded-full -bottom-1/4 -left-1/4 pointer-events-none"
-        />
-
-        {/* CONTENT LAYER */}
-        <motion.div
-          initial={{ opacity: 0, x: -40 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          className="z-10 max-w-md"
-        >
-          <h1 className="text-5xl font-extrabold tracking-tight mb-4">
-            Bonomaya
-          </h1>
-          <p className="uppercase tracking-widest text-sm opacity-80 mb-6 font-medium">
-            Smart Management System
-          </p>
-
-          <p className="text-lg leading-relaxed opacity-90">
-            Streamline operations, manage your team, and monitor business performance 
-            through a centralized and intelligent platform designed for modern enterprises.
-          </p>
-        </motion.div>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-24">
+            <span className="text-[10px] font-black text-slate-700 uppercase tracking-[0.5em]">Bonomaya Infrastructure</span>
+          </motion.div>
+        </div>
       </div>
 
-      {/* RIGHT SIDE */}
-      <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-[#FFF8F0] p-6 relative">
-
-        {/* Card */}
+      {/* --- RIGHT SIDE: মোবাইল এবং পিসি --- */}
+      <div className="flex flex-col justify-center items-center w-full md:w-1/2 bg-[#FDFCF0] p-6 relative">
+        
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="w-full max-w-md bg-white shadow-2xl rounded-3xl p-10 border border-orange-50/50"
+          className="w-full max-w-md bg-white shadow-[0_40px_80px_rgba(0,0,0,0.06)] rounded-[2.5rem] md:rounded-[3rem] p-8 lg:p-14 border border-orange-50"
         >
-
-          {/* Mobile Branding */}
-          <div className="md:hidden text-center mb-8">
-            <h1 className="text-3xl font-bold text-[#D9480F]">
-              Bonomaya
-            </h1>
-            <p className="text-xs text-gray-400 font-medium tracking-wide">
-              SMART MANAGEMENT SYSTEM
-            </p>
-          </div>
-
           {/* Header */}
-          <div className="mb-8 text-center md:text-left">
-            <h2 className="text-3xl font-bold text-gray-800">
-              Welcome Back
+          <div className="mb-10 text-center md:text-left">
+            <div className="md:hidden flex justify-center mb-6">
+                <div className="bg-[#D9480F] text-white px-4 py-2 rounded-xl text-lg font-black italic shadow-lg">B</div>
+            </div>
+            {/* মোবাইল টাইটেল পরিবর্তন */}
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter italic uppercase">
+              Smart <span className="text-[#D9480F]">Management</span> System
             </h2>
-            <p className="text-sm text-gray-500 mt-2">
-              Sign in to access your dashboard
+            <p className="text-[10px] text-slate-400 font-black mt-2 uppercase tracking-[0.3em] ml-1 font-sans">
+              Secure Portal Access
             </p>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleLogin} className="space-y-6">
-
-            {/* Email */}
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-500 ml-1">EMAIL ADDRESS</label>
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full p-4 rounded-xl border border-gray-200 focus:ring-4 focus:ring-[#D9480F]/10 focus:border-[#D9480F] outline-none transition-all duration-200"
-              />
-            </div>
-
-            {/* Password */}
-            <div className="space-y-1">
-              <div className="flex justify-between items-center ml-1">
-                <label className="text-xs font-bold text-gray-500">PASSWORD</label>
-               
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest font-sans">Identity Email</label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#D9480F] transition-colors" size={18} />
+                <input
+                  type="email"
+                  placeholder="name@bonomaya.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full bg-[#F8F9FA] border-2 border-slate-50 p-4 pl-12 rounded-2xl font-bold text-sm outline-none focus:border-[#D9480F] focus:bg-white transition-all"
+                />
               </div>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full p-4 rounded-xl border border-gray-200 focus:ring-4 focus:ring-[#D9480F]/10 focus:border-[#D9480F] outline-none transition-all duration-200"
-              />
             </div>
 
-            {/* Button */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest font-sans">Access Key</label>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#D9480F] transition-colors" size={18} />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full bg-[#F8F9FA] border-2 border-slate-50 p-4 pl-12 pr-12 rounded-2xl font-bold text-sm outline-none focus:border-[#D9480F] focus:bg-white transition-all"
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#D9480F]"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
             <motion.button
               type="submit"
               disabled={loading}
-              whileHover={{ scale: 1.02, backgroundColor: "#BF3F0D" }}
+              whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full p-4 rounded-xl bg-[#D9480F] text-white font-bold tracking-wide shadow-lg shadow-orange-200 flex justify-center items-center transition-colors duration-200"
+              className="w-full py-5 rounded-2xl bg-[#1A1A1A] text-white font-black uppercase text-xs tracking-[0.3em] shadow-2xl flex justify-center items-center gap-3 hover:bg-[#D9480F] transition-all duration-400"
             >
-              {loading ? (
-                <div className="flex items-center">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-3"></div>
-                  Authenticating...
-                </div>
-              ) : "Sign In →"}
+              {loading ? <Loader2 className="animate-spin" size={20} /> : <>Launch System <ArrowRight size={16} /></>}
             </motion.button>
           </form>
 
-          {/* Footer */}
-          <div className="mt-10 pt-6 border-t border-gray-100">
-            <p className="text-center text-gray-400 text-[10px] tracking-widest uppercase">
-              Developed by Masum Billah Maverick
-            </p>
+          <div className="mt-12 text-center">
+            <p className="text-slate-300 text-[8px] font-black uppercase tracking-[0.6em] font-sans">Powered by Maverick Infrastructure</p>
           </div>
-
         </motion.div>
       </div>
     </div>
