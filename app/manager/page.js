@@ -98,7 +98,7 @@ export default function ManagerDashboard() {
         <div className="p-8 text-center border-b border-white/5">
           <div className="bg-[#D9480F] w-12 h-12 rounded-full mx-auto flex items-center justify-center text-2xl font-bold mb-2 shadow-lg italic">B</div>
           <h2 className="text-lg font-bold italic tracking-tighter uppercase font-sans">ম্যানেজার প্যানেল</h2>
-          <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-2 font-sans">বুনোমায়া লজিস্টিকস</p>
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-2 font-sans">বনমায়া</p>
         </div>
         <nav className="flex-1 p-4 space-y-2 font-sans">
           <button onClick={() => { setActiveSection("dashboard"); setSidebarOpen(false); }} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'dashboard' ? 'bg-[#D9480F]' : 'hover:bg-white/5 opacity-70'}`}><LayoutDashboard size={20} /> ড্যাশবোর্ড</button>
@@ -118,7 +118,7 @@ export default function ManagerDashboard() {
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div className="text-center md:text-left font-sans">
                     <h2 className="text-3xl font-black text-slate-800 italic uppercase tracking-tighter">স্বাগতম, মাসুম ভাই!</h2>
-                    <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">আজকের বুনোমায়া লজিস্টিকস ওভারভিউ</p>
+                    <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">আজকের বনমায়া লজিস্টিকস ওভারভিউ</p>
                 </div>
                 <div className="flex gap-3 font-sans w-full md:w-auto">
                     <button onClick={() => setActiveSection("inventory")} className="flex-1 md:flex-none bg-[#D9480F] text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:scale-105 transition-all">বাজার এন্ট্রি</button>
