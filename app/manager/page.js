@@ -3,16 +3,30 @@ import { auth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, getDoc, setDoc, updateDoc, increment } from "firebase/firestore";
+import { 
+  Menu, X, LayoutDashboard, Package, FileText, LogOut, TrendingUp, Truck, 
+  Calendar, PlusCircle, AlertTriangle, Check, Search, ShoppingBag, ArrowRight 
+} from "lucide-react";
+import * as XLSX from "xlsx";
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
+  Cell, PieChart, Pie 
+} from "recharts";
 
 export default function ManagerDashboard() {
   const router = useRouter();
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("dashboard"); 
   const [inventory, setInventory] = useState([]); 
   const [purchases, setPurchases] = useState([]); 
   const [loading, setLoading] = useState(false);
+  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all"); 
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Form States (Aligned with image requirement)
   const [form, setForm] = useState({ 
-    itemName: "", quantity: "", unit: "KG", totalPrice: "", supplierName: "", supplierNumber: "", remarks: "" 
+    itemName: "", quantity: "", unit: "KG", totalPrice: "", supplierName: "", supplierNumber: "" 
   });
 
   useEffect(() => {
@@ -20,113 +34,327 @@ export default function ManagerDashboard() {
     onSnapshot(query(collection(db, "purchases"), orderBy("createdAt", "desc")), (s) => setPurchases(s.docs.map(d => ({ id: d.id, ...d.data() }))));
   }, []);
 
+  const exportToExcel = () => {
+    const fileData = purchases.map(p => ({
+      "তারিখ": p.date,
+      "আইটেম": p.itemName.toUpperCase(),
+      "পরিমাণ": `${p.quantity} ${p.unit}`,
+      "মোট দাম (৳)": p.totalPrice,
+      "ইউনিট রেট": p.perUnitPrice,
+      "সাপ্লায়ার": p.supplierName || "N/A",
+      "সাপ্লায়ার ফোন": p.supplierNumber || "N/A"
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(fileData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Purchase_Report");
+    XLSX.writeFile(workbook, `Bonomaya_Report_${new Date().toLocaleDateString()}.xlsx`);
+  };
+
   const perUnitPrice = (form.totalPrice && form.quantity) ? (Number(form.totalPrice) / Number(form.quantity)).toFixed(2) : 0;
 
   const handlePurchaseSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     const docId = form.itemName.toLowerCase().trim();
+    const today = new Date().toLocaleDateString('en-GB');
     try {
-      await addDoc(collection(db, "purchases"), { ...form, itemName: docId, perUnitPrice: Number(perUnitPrice), createdAt: serverTimestamp(), date: new Date().toLocaleDateString('bn-BD') });
+      await addDoc(collection(db, "purchases"), { 
+        ...form, itemName: docId, perUnitPrice: Number(perUnitPrice), createdAt: serverTimestamp(), date: today 
+      });
       const invRef = doc(db, "inventory", docId);
       const invSnap = await getDoc(invRef);
       if (invSnap.exists()) {
-        await updateDoc(invRef, { quantity: increment(Number(form.quantity)), lastUpdated: serverTimestamp() });
+        await updateDoc(invRef, { quantity: increment(Number(form.quantity)), lastUpdated: today, totalInvestment: increment(Number(form.totalPrice)) });
       } else {
-        await setDoc(invRef, { itemName: docId, quantity: Number(form.quantity), unit: form.unit, lastUpdated: serverTimestamp() });
+        await setDoc(invRef, { itemName: docId, quantity: Number(form.quantity), unit: form.unit, lastUpdated: today, totalInvestment: Number(form.totalPrice) });
       }
-      alert("স্টক আপডেট হয়েছে!");
-      setForm({ itemName: "", quantity: "", unit: "KG", totalPrice: "", supplierName: "", supplierNumber: "", remarks: "" });
+      alert("সফলভাবে স্টক আপডেট হয়েছে!");
+      setForm({ itemName: "", quantity: "", unit: "KG", totalPrice: "", supplierName: "", supplierNumber: "" });
+      setShowSuggestions(false);
     } catch (error) { alert(error.message); }
     setLoading(false);
   };
 
+  const filteredInventory = inventory.filter(item => {
+    const matchesSearch = item.itemName.toLowerCase().includes(searchTerm.toLowerCase());
+    if (filterStatus === "low") return matchesSearch && item.quantity > 0 && item.quantity < 10;
+    if (filterStatus === "out") return matchesSearch && item.quantity <= 0;
+    return matchesSearch;
+  });
+
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex font-sans text-slate-800">
+    <div className="min-h-screen bg-[#FDFCF0] flex flex-col lg:flex-row text-slate-900 font-sans tracking-tight">
       
-      {/* Sidebar - Matching the new UI */}
-      <aside className="w-64 bg-[#C83E0D] text-white flex flex-col shadow-2xl">
-        <div className="p-8 text-2xl font-black italic tracking-tighter">Bonomaya</div>
-        <nav className="flex-1 px-4 space-y-2">
-          <button className="w-full text-left p-4 rounded-xl bg-white/10 font-bold">Dashboard</button>
-          <button className="w-full text-left p-4 rounded-xl hover:bg-white/5 font-bold opacity-70">Inventory</button>
-          <button className="w-full text-left p-4 rounded-xl hover:bg-white/5 font-bold opacity-70">Reports</button>
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-[110] w-64 bg-[#1A1A1A] text-white transform transition-transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:static flex flex-col shadow-2xl`}>
+        <div className="p-8 text-center border-b border-white/5">
+          <div className="bg-[#D9480F] w-12 h-12 rounded-full mx-auto flex items-center justify-center text-2xl font-bold mb-2 shadow-lg italic">B</div>
+          <h2 className="text-lg font-bold italic tracking-tighter uppercase font-sans">ম্যানেজার প্যানেল</h2>
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-2 font-sans">বুনোমায়া লজিস্টিকস</p>
+        </div>
+        <nav className="flex-1 p-4 space-y-2 font-sans">
+          <button onClick={() => setActiveSection("dashboard")} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'dashboard' ? 'bg-[#D9480F]' : 'hover:bg-white/5 opacity-70'}`}><LayoutDashboard size={20} /> ড্যাশবোর্ড</button>
+          <button onClick={() => setActiveSection("inventory")} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'inventory' ? 'bg-[#D9480F]' : 'hover:bg-white/5 opacity-70'}`}><Package size={20} /> ইনভেন্টরি</button>
+          <button onClick={() => setActiveSection("reports")} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'reports' ? 'bg-[#D9480F]' : 'hover:bg-white/5 opacity-70'}`}><FileText size={20} /> রিপোর্টস</button>
         </nav>
-        <button onClick={() => auth.signOut().then(() => router.push("/login"))} className="m-6 p-4 bg-black/20 rounded-xl font-bold uppercase text-[10px] tracking-widest text-center">Logout</button>
+        <button onClick={() => auth.signOut().then(() => router.push("/login"))} className="p-4 bg-red-900/20 text-red-400 hover:bg-red-900 hover:text-white flex gap-2 justify-center mt-auto border-t border-white/5 transition-all"><LogOut size={18} /> লগআউট</button>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 h-screen overflow-y-auto p-10 space-y-8 scrollbar-hide">
-        <header className="flex justify-between items-center">
-          <h1 className="text-xl font-black uppercase text-slate-800">Bonomaya Manager</h1>
-          <div className="flex items-center gap-3">
-             <span className="text-sm font-bold text-slate-500 italic">Moshiur Bhai</span>
-             <div className="w-10 h-10 bg-[#FF5C12] text-white rounded-full flex items-center justify-center font-black">M</div>
-          </div>
-        </header>
-
-        {/* Top Stats Cards - Exactly like your new UI */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-3xl border-l-8 border-[#FF5C12] shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">এই মাসের কেনাকাটা</p>
-            <p className="text-2xl font-black">৳ {purchases.reduce((a, c) => a + Number(c.totalPrice), 0).toLocaleString()}</p>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border-l-8 border-[#3474F5] shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">লো স্টক এলার্ট</p>
-            <p className="text-2xl font-black text-red-600">{inventory.filter(i => i.quantity < 10).length} টি আইটেম কম ⚠️</p>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border-l-8 border-[#28C76F] shadow-sm">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">অপারেশন</p>
-            <p className="text-2xl font-black italic tracking-tighter">LIVE NOW</p>
-          </div>
-        </div>
-
-        {/* Form and Real-time Status */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
-          {/* Form Card - Matching UI Style */}
-          <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-            <h2 className="text-md font-black mb-6 text-[#3474F5] uppercase border-b pb-4 italic">নতুন স্টক আপডেট করুন</h2>
-            <form onSubmit={handlePurchaseSubmit} className="space-y-4">
-              <input type="text" placeholder="আইটেমের নাম (যেমন: ময়দা)" value={form.itemName} onChange={(e) => setForm({...form, itemName: e.target.value})} className="w-full bg-[#F8F9FA] border p-4 rounded-2xl font-bold text-sm outline-none focus:border-[#3474F5]" required />
-              <div className="flex gap-4">
-                <input type="number" placeholder="পরিমাণ" value={form.quantity} onChange={(e) => setForm({...form, quantity: e.target.value})} className="flex-1 bg-[#F8F9FA] border p-4 rounded-2xl font-bold text-sm" required />
-                <select value={form.unit} onChange={(e) => setForm({...form, unit: e.target.value})} className="w-24 bg-[#F8F9FA] border p-4 rounded-2xl font-black text-xs">
-                  <option value="KG">KG</option><option value="LTR">LTR</option><option value="PCS">PCS</option>
-                </select>
-              </div>
-              <input type="number" placeholder="মোট দাম (৳)" value={form.totalPrice} onChange={(e) => setForm({...form, totalPrice: e.target.value})} className="w-full bg-[#F8F9FA] border p-4 rounded-2xl font-bold text-sm text-[#3474F5]" required />
-              
-              <div className="bg-blue-50 p-4 rounded-2xl text-center border border-blue-100">
-                <p className="text-[9px] font-black text-blue-400 uppercase">Per Unit Price</p>
-                <p className="text-lg font-black text-[#3474F5]">৳ {perUnitPrice} / {form.unit}</p>
-              </div>
-
-              <input type="text" placeholder="সাপ্লায়ার নাম" value={form.supplierName} onChange={(e) => setForm({...form, supplierName: e.target.value})} className="w-full bg-[#F8F9FA] border p-4 rounded-2xl font-bold text-xs" />
-              <input type="text" placeholder="কন্টাক্ট নাম্বার" value={form.supplierNumber} onChange={(e) => setForm({...form, supplierNumber: e.target.value})} className="w-full bg-[#F8F9FA] border p-4 rounded-2xl font-bold text-xs" />
-              <textarea placeholder="রিমার্কস..." value={form.remarks} onChange={(e) => setForm({...form, remarks: e.target.value})} className="w-full bg-[#F8F9FA] border p-4 rounded-2xl font-bold text-xs h-20 resize-none"></textarea>
-              
-              <button disabled={loading} className="w-full bg-[#3474F5] text-white py-4 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-blue-100 transition hover:bg-blue-700 active:scale-95">
-                UPDATE STOCK
-              </button>
-            </form>
-          </section>
-
-          {/* Right Section: Live Status Cards */}
-          <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-            <h2 className="text-md font-black mb-6 text-slate-800 uppercase italic">📊 ইনভেন্টরি স্ট্যাটাস (Live)</h2>
-            <div className="grid grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
-              {inventory.map(item => (
-                <div key={item.id} className={`p-6 rounded-[1.5rem] text-center border-2 transition-all ${item.quantity < 10 ? 'bg-red-50 border-red-200' : 'bg-[#FFF8F0] border-[#FFD9B3]'}`}>
-                  <p className={`text-[10px] font-black uppercase mb-1 ${item.quantity < 10 ? 'text-red-500' : 'text-orange-500'}`}>{item.itemName}</p>
-                  <p className="text-2xl font-black text-slate-800">{item.quantity} <span className="text-[10px] uppercase font-bold">{item.unit}</span></p>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
+      <main className="flex-1 p-6 md:p-10 overflow-y-auto h-screen">
         
-        <p className="text-center text-[10px] font-black text-slate-300 tracking-[0.3em] uppercase italic">Bonomaya Logistics Dashboard v2.0</p>
+        {/* Dashboard Analytics Section */}
+        {activeSection === "dashboard" && (
+          <div className="space-y-8 animate-in fade-in duration-700 font-sans">
+            
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="text-center md:text-left font-sans">
+                    <h2 className="text-3xl font-black text-slate-800 italic uppercase tracking-tighter">স্বাগতম, মাসুম ভাই!</h2>
+                    <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">আজকের বুনোমায়া লজিস্টিকস ওভারভিউ</p>
+                </div>
+                <div className="flex gap-3 font-sans">
+                    <button onClick={() => setActiveSection("inventory")} className="bg-[#D9480F] text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:scale-105 transition-all font-sans">বাজার এন্ট্রি</button>
+                    <button onClick={() => setActiveSection("reports")} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:scale-105 transition-all font-sans">রিপোর্ট দেখুন</button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
+                <div className="bg-white p-6 rounded-3xl shadow-sm border-l-8 border-[#D9480F]">
+                    <div className="flex justify-between items-center mb-2 font-sans">
+                      <h3 className="text-xs font-bold text-gray-500 uppercase font-sans">মোট খরচ (মাস)</h3>
+                      <TrendingUp size={16} className="text-[#D9480F]" />
+                    </div>
+                    <p className="text-2xl font-black font-sans">
+                      ৳ {purchases.filter(p => {
+                          const currentMonth = new Date().getMonth() + 1;
+                          const [d, m, y] = p.date?.split('/') || [];
+                          return Number(m) === currentMonth;
+                        }).reduce((a, c) => a + Number(c.totalPrice), 0).toLocaleString()}
+                    </p>
+                </div>
+                <div className="bg-white p-6 rounded-3xl shadow-sm border-l-8 border-blue-600 font-sans">
+                    <div className="flex justify-between items-center mb-2 font-sans">
+                      <h3 className="text-xs font-bold text-gray-500 uppercase font-sans">লো স্টক আইটেম</h3>
+                      <AlertTriangle size={16} className="text-red-500 font-sans" />
+                    </div>
+                    <p className="text-2xl font-black text-red-600 font-sans tracking-tighter">{inventory.filter(i => i.quantity < 10).length} টি</p>
+                </div>
+                <div className="bg-[#1A1A1A] text-white p-6 rounded-3xl font-sans">
+                    <h3 className="text-gray-400 text-xs font-bold uppercase font-sans font-bold">অপারেশন</h3>
+                    <p className="text-xl font-bold text-green-500 animate-pulse font-sans">● LIVE NOW</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 font-sans">
+                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 font-sans">
+                    <h3 className="text-sm font-black text-slate-800 uppercase mb-6 flex items-center gap-2 font-sans">
+                        <TrendingUp size={18} className="text-blue-500 font-sans" /> কেনাকাটার খরচ (শেষ ৭ দিন)
+                    </h3>
+                    <div className="h-64 w-full font-sans font-bold">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={purchases.slice(0, 7).reverse()}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis dataKey="date" fontSize={10} fontWeight="bold" tickLine={false} axisLine={false} />
+                                <YAxis fontSize={10} fontWeight="bold" tickLine={false} axisLine={false} />
+                                <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
+                                <Bar dataKey="totalPrice" fill="#3474F5" radius={[6, 6, 0, 0]} barSize={30} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 font-sans">
+                    <h3 className="text-sm font-black text-slate-800 uppercase mb-6 flex items-center gap-2 font-sans tracking-widest font-bold">
+                        <Package size={18} className="text-orange-500" /> স্টক ডিস্ট্রিবিউশন
+                    </h3>
+                    <div className="h-64 w-full font-sans text-[10px] font-bold">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={inventory.slice(0, 5)}
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={5}
+                                    dataKey="quantity"
+                                    nameKey="itemName"
+                                >
+                                    {inventory.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={['#3474F5', '#FF5C12', '#28C76F', '#7367F0', '#FF9F43'][index % 5]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip />
+                            </PieChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans">
+                <div className="p-6 bg-red-50 flex justify-between items-center font-sans">
+                    <h3 className="text-xs font-black text-red-600 uppercase flex items-center gap-2 font-sans tracking-widest font-bold">
+                        <AlertTriangle size={16} /> দ্রুত কেনা প্রয়োজন (Low Stock)
+                    </h3>
+                </div>
+                <div className="p-4 font-sans font-bold">
+                    {inventory.filter(i => i.quantity < 10).slice(0, 3).map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center p-4 border-b last:border-0 font-sans tracking-tighter">
+                            <span className="font-bold uppercase text-slate-700 font-sans">{item.itemName}</span>
+                            <span className="text-red-600 font-black font-sans">{item.quantity} {item.unit} বাকি</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- INVENTORY --- */}
+        {activeSection === "inventory" && (
+          <div className="space-y-6 animate-in slide-in-from-right-4 duration-500 font-sans font-bold">
+             <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-6 font-sans">
+                <div className="flex flex-col md:flex-row justify-between gap-4 font-sans">
+                    <div className="flex items-center gap-3 font-sans font-bold tracking-tighter uppercase">
+                        <div className="bg-blue-100 p-2 rounded-xl text-blue-600 font-sans"><Package /></div>
+                        <h2 className="text-xl font-black uppercase italic tracking-tighter font-sans">মাস্টার স্টক লেজার</h2>
+                    </div>
+                    <div className="flex flex-wrap gap-2 font-sans font-bold tracking-tighter uppercase">
+                        <div className="relative flex-1 md:w-64 font-sans font-bold tracking-tighter uppercase">
+                            <Search className="absolute left-3 top-2.5 text-slate-400 font-sans" size={16} />
+                            <input type="text" placeholder="আইটেম খুঁজুন..." className="pl-10 pr-4 py-2 w-full bg-slate-50 border rounded-xl text-sm outline-none focus:border-blue-500 font-sans font-bold uppercase tracking-tighter uppercase" onChange={(e) => setSearchTerm(e.target.value)} />
+                        </div>
+                        <select onChange={(e) => setFilterStatus(e.target.value)} className="bg-slate-50 border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer font-sans">
+                            <option value="all">সব আইটেম</option><option value="low">স্টক কম</option><option value="out">স্টক নেই</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div className="flex flex-col xl:flex-row gap-8 font-sans font-bold tracking-tighter uppercase">
+              <section className="xl:w-2/3">
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden min-h-[500px] font-sans">
+                  <div className="overflow-x-auto font-sans">
+                    <table className="w-full text-left font-sans font-bold uppercase tracking-tighter">
+                      <thead>
+                        <tr className="bg-slate-800 text-white text-[11px] uppercase font-black tracking-widest font-sans font-bold tracking-tighter uppercase">
+                          <th className="p-4 font-sans tracking-widest">আপডেট</th><th className="p-4 font-sans tracking-widest">আইটেম</th><th className="p-4 text-center font-sans tracking-widest">স্টক পরিমাণ</th><th className="p-4 font-sans tracking-widest">বিনিয়োগ</th><th className="p-4 text-center font-sans tracking-widest font-bold tracking-tighter uppercase font-sans">অবস্থা</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm font-sans font-bold tracking-tighter uppercase">
+                        {filteredInventory.map(item => (
+                          <tr key={item.id} className="border-b hover:bg-orange-50/30 transition-all font-medium font-sans font-bold tracking-tighter uppercase">
+                            <td className="p-4 text-slate-400 text-[10px] font-sans font-bold tracking-tighter uppercase">{item.lastUpdated || "N/A"}</td>
+                            <td className="p-4 font-bold uppercase text-slate-800 tracking-tight font-sans font-bold tracking-tighter uppercase">{item.itemName}</td>
+                            <td className="p-4 text-center font-sans font-bold tracking-tighter uppercase">
+                                <span className={`px-3 py-1 rounded-full font-bold font-sans font-bold tracking-tighter uppercase ${item.quantity < 10 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-700'}`}>
+                                  {item.quantity} {item.unit}
+                                </span>
+                            </td>
+                            <td className="p-4 font-black text-blue-600 font-sans font-bold tracking-tighter uppercase tracking-tighter uppercase">৳{item.totalInvestment?.toLocaleString() || 0}</td>
+                            <td className="p-4 text-center font-sans font-bold tracking-tighter uppercase">
+                              {item.quantity <= 0 ? <span className="text-red-600 bg-red-100 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">Out</span> : item.quantity < 10 ? <span className="text-orange-600 bg-orange-100 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">Low</span> : <span className="text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">OK</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
+
+              <section className="xl:w-1/3 font-sans font-bold tracking-tighter uppercase">
+                <div className="bg-[#1A1A1A] text-white p-7 rounded-[2.5rem] shadow-2xl sticky top-4 border border-white/5 font-sans font-bold tracking-tighter uppercase">
+                  <h2 className="text-lg font-bold mb-6 text-orange-500 border-b border-white/5 pb-3 flex gap-2 items-center italic font-sans font-bold tracking-tighter uppercase"><PlusCircle size={20}/> নতুন বাজার আপডেট</h2>
+                  <form onSubmit={handlePurchaseSubmit} className="space-y-4 font-sans font-bold tracking-tighter uppercase">
+                    <div className="relative font-sans font-bold tracking-tighter uppercase">
+                      <label className="text-[10px] font-black text-slate-500 uppercase ml-1 block mb-1 font-sans font-bold tracking-tighter uppercase">আইটেমের নাম</label>
+                      <input type="text" placeholder="নাম..." value={form.itemName} onFocus={() => setShowSuggestions(true)} onChange={(e) => {setForm({...form, itemName: e.target.value}); setShowSuggestions(true);}} className="w-full bg-white/5 border border-white/10 p-3.5 rounded-xl font-bold text-sm text-white focus:border-blue-500 outline-none font-sans font-bold tracking-tighter uppercase" required />
+                      {showSuggestions && form.itemName && (
+                        <div className="absolute z-[200] w-full bg-white text-slate-900 mt-1 rounded-xl shadow-2xl max-h-48 overflow-y-auto font-sans font-bold tracking-tighter uppercase">
+                            {inventory.filter(i => i.itemName.toLowerCase().includes(form.itemName.toLowerCase())).map(item => (
+                                <div key={item.id} className="p-3 hover:bg-orange-50 cursor-pointer text-sm font-bold border-b border-slate-50 flex justify-between uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase" onClick={() => {setForm({...form, itemName: item.itemName, unit: item.unit}); setShowSuggestions(false);}}>
+                                    <span className="font-sans font-bold tracking-tighter uppercase">{item.itemName}</span><span className="text-[10px] bg-slate-100 px-2 rounded font-sans font-bold tracking-tighter uppercase">{item.unit}</span>
+                                </div>
+                            ))}
+                            <button type="button" onClick={() => setShowSuggestions(false)} className="w-full p-2 text-[10px] font-bold text-red-500 bg-red-50 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">বন্ধ করুন</button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                        <div className="flex-1 font-sans font-bold tracking-tighter uppercase"><label className="text-[10px] font-black text-slate-500 uppercase ml-1 block mb-1 font-sans font-bold tracking-tighter uppercase">পরিমাণ</label><input type="number" value={form.quantity} onChange={(e) => setForm({...form, quantity: e.target.value})} className="w-full bg-white/5 border border-white/10 p-3.5 rounded-xl font-bold text-white text-sm font-sans font-bold tracking-tighter uppercase" required /></div>
+                        <div className="w-24 font-sans font-bold tracking-tighter uppercase"><label className="text-[10px] font-black text-slate-500 uppercase ml-1 block mb-1 font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">ইউনিট</label><select value={form.unit} onChange={(e) => setForm({...form, unit: e.target.value})} className="w-full bg-white/5 border border-white/10 p-3.5 rounded-xl font-bold text-xs text-white h-[50px] outline-none cursor-pointer font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase"><option className="text-black font-sans font-bold tracking-tighter uppercase" value="KG">KG</option><option className="text-black font-sans font-bold tracking-tighter uppercase" value="LTR">LTR</option><option className="text-black font-sans font-bold tracking-tighter uppercase" value="PCS">PCS</option></select></div>
+                    </div>
+                    <div className="font-sans font-bold tracking-tighter uppercase"><label className="text-[10px] font-black text-blue-400 uppercase ml-1 block mb-1 font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">মোট দাম (৳)</label><input type="number" placeholder="0.00" value={form.totalPrice} onChange={(e) => setForm({...form, totalPrice: e.target.value})} className="w-full bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl font-black text-blue-400 text-lg outline-none font-sans font-bold tracking-tighter uppercase" required /></div>
+                    <div className="p-3 bg-white/5 rounded-2xl border border-white/5 space-y-2 font-sans font-bold tracking-tighter uppercase font-medium font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase"><input type="text" placeholder="সাপ্লায়ার নাম" value={form.supplierName} onChange={(e) => setForm({...form, supplierName: e.target.value})} className="w-full bg-transparent border-b border-white/10 p-1 text-xs outline-none text-white font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase" /><input type="text" placeholder="সাপ্লায়ার ফোন" value={form.supplierNumber} onChange={(e) => setForm({...form, supplierNumber: e.target.value})} className="w-full bg-transparent p-1 text-xs outline-none text-white font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase" /></div>
+                    <button disabled={loading} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 active:scale-95 transition-all font-black font-sans font-bold tracking-tighter uppercase font-black font-sans font-bold tracking-tighter uppercase font-black font-sans font-bold tracking-tighter uppercase">{loading ? "সেভ হচ্ছে..." : "স্টক কনফার্ম করুন"}</button>
+                  </form>
+                </div>
+              </section>
+            </div>
+          </div>
+        )}
+
+        {/* --- REPORTS --- */}
+        {activeSection === "reports" && (
+          <div className="space-y-8 animate-in fade-in duration-500 font-sans font-bold tracking-tighter uppercase">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-white font-sans font-bold tracking-tighter uppercase">
+                <div className="bg-slate-900 p-6 rounded-3xl shadow-xl border-t-4 border-blue-500 font-sans font-bold tracking-tighter uppercase">
+                    <ShoppingBag className="text-blue-500 mb-2 font-sans font-bold tracking-tighter uppercase" size={24} />
+                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">মোট কেনাকাটা (চলতি মাস)</h3>
+                    <p className="text-2xl font-black tracking-tighter font-sans font-bold tracking-tighter uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">৳ {purchases.filter(p => {
+                      const m = new Date().getMonth() + 1;
+                      return Number(p.date?.split('/')[1]) === m;
+                    }).reduce((a, c) => a + Number(c.totalPrice), 0).toLocaleString()}</p>
+                </div>
+                <div className="bg-white p-6 rounded-3xl shadow-sm border-t-4 border-emerald-500 font-sans font-bold tracking-tighter uppercase">
+                    <Truck className="text-emerald-500 mb-2 font-sans font-bold tracking-tighter uppercase" size={24} />
+                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">মোট ভাউচার</h3>
+                    <p className="text-2xl font-black text-slate-800 tracking-tighter font-sans font-bold tracking-tighter uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">{purchases.length} টি</p>
+                </div>
+                <div className="bg-white p-6 rounded-3xl shadow-sm border-t-4 border-orange-500 font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">
+                    <Calendar className="text-orange-500 mb-2 font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase" size={24} />
+                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">শেষ বাজার তারিখ</h3>
+                    <p className="text-xl font-black text-slate-800 tracking-tight tracking-tighter font-sans font-bold tracking-tighter uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">{purchases[0]?.date || 'N/A'}</p>
+                </div>
+                <div className="bg-blue-600 p-6 rounded-3xl shadow-lg border-t-4 border-white/20 font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">
+                    <TrendingUp className="text-white/80 mb-2 font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase" size={24} />
+                    <h3 className="text-[10px] font-bold text-blue-100 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">বাজেট স্ট্যাটাস</h3>
+                    <p className="text-xl font-black italic tracking-tighter uppercase leading-none font-sans font-bold tracking-tighter uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">Healthy</p>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">
+                <div className="p-7 bg-slate-50 border-b flex justify-between items-center font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">
+                    <div className="font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase">
+                        <h2 className="text-xl font-black text-slate-800 italic uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">বাজারের বিস্তারিত অডিট রিপোর্ট</h2>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">ভাউচার লিস্ট এবং ট্রানজাকশন হিস্ট্রি</p>
+                    </div>
+                    <button onClick={exportToExcel} className="bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition shadow-lg shadow-slate-200 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">Export Excel</button>
+                </div>
+                <div className="overflow-x-auto font-sans font-bold tracking-tighter uppercase">
+                    <table className="w-full text-left font-sans font-bold uppercase tracking-tighter">
+                        <thead>
+                            <tr className="bg-slate-800 text-white text-[10px] font-black uppercase tracking-[0.2em] font-sans font-bold tracking-tighter uppercase">
+                                <th className="p-5 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">তারিখ</th><th className="p-5 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">আইটেম</th><th className="p-5 text-center font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">পরিমাণ</th><th className="p-5 text-right font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">মোট দাম (৳)</th><th className="p-5 text-center font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold font-sans font-bold tracking-tighter uppercase">দর (প্রতি ইউনিট)</th><th className="p-5 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">সাপ্লায়ার</th>
+                            </tr>
+                        </thead>
+                        <tbody className="text-sm font-sans font-bold tracking-tighter uppercase">
+                            {purchases.map((p, idx) => (
+                                <tr key={p.id} className={`border-b border-slate-50 hover:bg-orange-50/20 transition-all font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
+                                    <td className="p-5 font-bold text-slate-400 text-xs font-sans font-bold tracking-tighter uppercase">{p.date}</td>
+                                    <td className="p-5 font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase"><span className="font-black text-slate-800 uppercase tracking-tight font-sans font-bold tracking-tighter uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">{p.itemName}</span></td>
+                                    <td className="p-5 text-center font-bold text-slate-700 font-sans font-bold tracking-tighter font-sans font-bold tracking-tighter">{p.quantity} {p.unit}</td>
+                                    <td className="p-5 text-right font-black text-blue-600 text-md font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase">৳{p.totalPrice?.toLocaleString()}</td>
+                                    <td className="p-5 text-center text-slate-400 font-bold italic font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase">৳{p.perUnitPrice || 0}</td>
+                                    <td className="p-5 font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-medium text-slate-600 font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">{p.supplierName || 'N/A'}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+          </div>
+        )}
+        
+        <p className="text-center text-[10px] font-bold text-slate-300 tracking-[0.4em] uppercase mt-12 italic font-sans font-bold tracking-tighter uppercase">Bonomaya Smart Logistics Terminal</p>
       </main>
     </div>
   );
