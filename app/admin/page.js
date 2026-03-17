@@ -223,4 +223,4 @@ function AdminDashboard() {
 }
 
 // দারোয়ানকে দিয়ে পেজটি লক করে এক্সপোর্ট করা হলো
-export default withAuth(AdminDashboard, "Admin");
+export default withAuth(AdminDashboard, "admin");
