@@ -3,39 +3,37 @@ import { auth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOut } from "firebase/auth";
-import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, updateDoc, increment, getDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, updateDoc, increment } from "firebase/firestore";
+import { motion } from "framer-motion";
+import { Menu, X, UtensilsCrossed, Package, LogOut, ClipboardList, ChefHat, ChevronRight } from "lucide-react";
 
 export default function ChefDashboard() {
   const router = useRouter();
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
   
   // States
-  const [rawMaterials, setRawMaterials] = useState([]); // কিচেন সেলফ (কাঁচামাল)
-  const [finishedGoods, setFinishedGoods] = useState([]); // তৈরি করা খাবার (স্টোর)
-  const [productions, setProductions] = useState([]); // আজকের রিপোর্ট
+  const [rawMaterials, setRawMaterials] = useState([]); // কিচেন ইনভেন্টরি
+  const [productions, setProductions] = useState([]); // প্রোডাকশন হিস্ট্রি
   
   const [prodName, setProdName] = useState("");
   const [prodQty, setProdQty] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // ১. কিচেন সেলফ (Raw Materials) লোড
+    // ১. কিচেন সেলফ (Raw Materials) - ডাইনামিক রিড
     const unsubRaw = onSnapshot(query(collection(db, "inventory"), orderBy("itemName", "asc")), (s) => 
       setRawMaterials(s.docs.map(d => ({ id: d.id, ...d.data() }))));
 
-    // ২. ফিনিশড গুডস (তৈরি খাবার) লোড
-    const unsubGoods = onSnapshot(query(collection(db, "finished_goods"), orderBy("itemName", "asc")), (s) => 
-      setFinishedGoods(s.docs.map(d => ({ id: d.id, ...d.data() }))));
-
-    // ৩. আজকের প্রোডাকশন রিপোর্ট
-    const unsubReport = onSnapshot(query(collection(db, "productions"), orderBy("createdAt", "desc")), (s) => 
+    // ২. আজকের প্রোডাকশন রিপোর্ট (পেন্ডিং এবং একসেপ্টেড সব)
+    const unsubReport = onSnapshot(query(collection(db, "production"), orderBy("createdAt", "desc")), (s) => 
       setProductions(s.docs.map(d => ({ id: d.id, ...d.data() }))));
     
-    return () => { unsubRaw(); unsubGoods(); unsubReport(); };
+    return () => { unsubRaw(); unsubReport(); };
   }, []);
 
   const handleLogout = async () => { await signOut(auth); router.push("/login"); };
 
-  // কিচেন সেলফ থেকে মাল নেওয়া (Deduction)
+  // কিচেন সেলফ থেকে মাল কমানো (Cooking use)
   const useRawMaterial = async (id, name, currentQty) => {
     const amount = prompt(`${name} কতটুকু রান্নায় নিচ্ছেন?`);
     if (amount && Number(amount) <= currentQty) {
@@ -46,128 +44,140 @@ export default function ChefDashboard() {
     } else if (Number(amount) > currentQty) { alert("সেলফে পর্যাপ্ত মাল নেই!"); }
   };
 
-  // খাবার তৈরি করে স্টোরে পাঠানো (Production)
-  const handleCompleteProduction = async (e) => {
+  // খাবার তৈরি করে সেলসম্যানের কাছে পাঠানো (Pending Status)
+  const handleProductionEntry = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const docId = prodName.toLowerCase().trim();
 
     try {
-      // ১. প্রোডাকশন লগ সেভ
-      await addDoc(collection(db, "productions"), {
+      // সেলসম্যানের কাছে 'Pending' অবস্থায় ডেটা পাঠানো হচ্ছে
+      await addDoc(collection(db, "production"), {
         itemName: prodName,
         quantity: Number(prodQty),
+        unit: "Pcs",
+        status: "Pending", // এটা সেলসম্যানের কাছে ভেসে উঠবে
+        chefName: "Chef Masum", 
         createdAt: serverTimestamp()
       });
 
-      // ২. ফিনিশড গুডস স্টোরে মাল অ্যাড করা
-      const goodsRef = doc(db, "finished_goods", docId);
-      const goodsSnap = await getDoc(goodsRef);
-
-      if (goodsSnap.exists()) {
-        await updateDoc(goodsRef, {
-          quantity: increment(Number(prodQty)),
-          lastUpdated: serverTimestamp()
-        });
-      } else {
-        await setDoc(goodsRef, {
-          itemName: prodName,
-          quantity: Number(prodQty),
-          lastUpdated: serverTimestamp()
-        });
-      }
-
-      alert("খাবারটি বিক্রির জন্য স্টোরে পাঠানো হয়েছে!");
+      alert("প্রোডাকশন এন্ট্রি হয়েছে! সেলসম্যান একসেপ্ট করলে স্টক আপডেট হবে।");
       setProdName(""); setProdQty("");
     } catch (e) { alert(e.message); }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFCF0] flex flex-col md:flex-row font-sans">
-      {/* Chef Sidebar */}
-      <div className="w-full md:w-64 bg-orange-700 text-white flex flex-col shadow-2xl">
-        <div className="p-8 text-2xl font-black italic border-b border-orange-800 text-center tracking-tighter">Bonomaya Kitchen</div>
-        <nav className="flex-1 p-5 space-y-4 font-bold text-sm">
-          <button className="w-full text-left p-4 rounded-2xl bg-orange-800 shadow-lg italic">👨‍🍳 Cooking Area</button>
-          <button className="w-full text-left p-4 rounded-2xl hover:bg-orange-600 transition-all opacity-60">Inventory Request</button>
-        </nav>
-        <button onClick={handleLogout} className="m-5 p-4 bg-black/20 hover:bg-red-700 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all">Logout</button>
-      </div>
+    <div className="min-h-screen bg-[#FFF8F0] flex font-sans text-gray-800">
+      
+      {/* SIDEBAR (Orange Gradient) */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-[#D9480F] to-[#FF6B3F] text-white transform transition-transform duration-300 ease-in-out
+        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:static flex flex-col shadow-2xl
+      `}>
+        <div className="p-8 border-b border-white/10 flex flex-col items-center">
+          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-4 border border-white/30">
+            <ChefHat size={32} />
+          </div>
+          <h1 className="text-2xl font-black tracking-tight italic">Chef Console</h1>
+          <p className="text-[10px] uppercase tracking-[0.3em] opacity-70 mt-1">Kitchen Unit</p>
+        </div>
 
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        <header className="bg-white border-b p-6 flex justify-between items-center shadow-sm">
-          <h1 className="text-xl font-black text-orange-700 uppercase italic">Chef Console</h1>
-          <div className="text-xs font-bold text-gray-400 italic">Today: {new Date().toLocaleDateString('bn-BD')}</div>
+        <nav className="flex-1 p-6 space-y-2 mt-4">
+          <button className="w-full flex items-center justify-between p-4 rounded-xl bg-white/10 font-bold transition-all border border-white/5 shadow-lg">
+            <span className="flex items-center gap-4"><UtensilsCrossed size={20}/> Cooking Area</span>
+            <ChevronRight size={16} />
+          </button>
+          <button className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 font-semibold transition-all opacity-80">
+            <ClipboardList size={20}/> Daily Report
+          </button>
+        </nav>
+
+        <div className="p-6">
+          <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 p-4 rounded-xl bg-white/5 border border-white/10 font-bold text-xs">
+            <LogOut size={18}/> Sign Out
+          </button>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto">
+        
+        {/* Header */}
+        <header className="bg-white/80 backdrop-blur-md p-5 flex justify-between items-center sticky top-0 z-40 border-b border-gray-200">
+          <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 text-[#D9480F]"><Menu/></button>
+          <h2 className="text-xl font-bold text-gray-700 hidden md:block uppercase tracking-tighter">Kitchen Management</h2>
+          <div className="w-9 h-9 bg-orange-100 text-[#D9480F] rounded-full flex items-center justify-center font-black">C</div>
         </header>
 
-        <main className="p-6 overflow-y-auto space-y-8 pb-20 scrollbar-hide">
+        <main className="p-4 md:p-10 space-y-8 pb-24">
           
-          {/* Section 1: Kitchen Shelf (Raw Materials) */}
-          <section className="bg-white p-8 rounded-[3rem] shadow-sm border border-orange-50">
-            <h2 className="text-sm font-black text-gray-800 mb-6 uppercase tracking-[0.2em] italic">📦 কিচেন সেলফ (Raw Stock - Click to Use)</h2>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {/* Section 1: Kitchen Self (Inventory Use) */}
+          <section className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 transition-all">
+            <div className="flex justify-between items-center mb-6">
+               <h3 className="text-xs font-black text-[#D9480F] uppercase tracking-[0.2em]">📦 কিচেন সেলফ (Raw Materials)</h3>
+               <span className="text-[10px] text-gray-400 font-bold italic underline cursor-help">Click an item to use it in cooking</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {rawMaterials.map((item) => (
-                <div key={item.id} onClick={() => useRawMaterial(item.id, item.itemName, item.quantity)} 
-                     className="bg-[#FFF9E6] p-5 rounded-[2rem] border-2 border-transparent hover:border-orange-400 cursor-pointer transition-all hover:scale-105 text-center">
-                  <p className="text-[9px] uppercase font-black text-orange-400 mb-1 truncate">{item.itemName}</p>
-                  <p className="text-xl font-black text-gray-800">{item.quantity} <span className="text-[10px] uppercase">{item.unit}</span></p>
-                </div>
+                <motion.div 
+                  whileTap={{ scale: 0.95 }}
+                  key={item.id} 
+                  onClick={() => useRawMaterial(item.id, item.itemName, item.quantity)} 
+                  className="bg-[#FFF8F0] p-5 rounded-3xl border border-orange-50 hover:border-orange-200 cursor-pointer text-center group"
+                >
+                  <p className="text-[10px] font-bold text-gray-500 uppercase mb-1">{item.itemName}</p>
+                  <p className="text-xl font-black text-gray-800">{item.quantity} <span className="text-[10px] opacity-40 uppercase">{item.unit}</span></p>
+                </motion.div>
               ))}
             </div>
           </section>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Section 2: Production Form */}
-            <section className="bg-white p-8 rounded-[3rem] shadow-sm border border-orange-50 h-fit">
-              <h2 className="text-md font-black mb-6 text-gray-800 border-b pb-4 uppercase italic">🍲 খাবার তৈরি সম্পন্ন করুন (Production)</h2>
-              <form onSubmit={handleCompleteProduction} className="space-y-4">
-                <input type="text" placeholder="খাবারের নাম (যেমন: চিকেন বান)" value={prodName} onChange={(e) => setProdName(e.target.value)} className="w-full border-2 border-slate-50 p-4 rounded-2xl outline-none focus:border-orange-500 bg-slate-50 font-bold text-sm" required />
-                <input type="number" placeholder="কত পিস তৈরি হলো?" value={prodQty} onChange={(e) => setProdQty(e.target.value)} className="w-full border-2 border-slate-50 p-4 rounded-2xl outline-none focus:border-orange-500 bg-slate-50 font-bold text-sm" required />
-                <button disabled={loading} className="w-full bg-orange-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-orange-700 transition shadow-xl shadow-orange-100">
-                  {loading ? "Processing..." : "Move to Store"}
+            {/* Section 2: Production Form (Same style as Login Box) */}
+            <section className="bg-white p-8 md:p-10 rounded-[3rem] shadow-2xl shadow-gray-200/50 border border-gray-50 h-fit">
+              <h3 className="text-sm font-black text-[#D9480F] uppercase tracking-[0.2em] mb-8 border-b pb-4">Create Production Batch</h3>
+              <form onSubmit={handleProductionEntry} className="space-y-6">
+                <input type="text" placeholder="আইটেমের নাম (যেমন: চিকেন রোল)" value={prodName} onChange={(e) => setProdName(e.target.value)} className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-[#D9480F]/40 outline-none font-semibold text-sm transition-all" required />
+                <input type="number" placeholder="পরিমাণ (Pcs)" value={prodQty} onChange={(e) => setProdQty(e.target.value)} className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 focus:ring-2 focus:ring-[#D9480F]/40 outline-none font-semibold text-sm transition-all" required />
+                <button disabled={loading} className="w-full p-4 bg-[#D9480F] text-white rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-orange-950/20 text-xs">
+                  {loading ? "Syncing..." : "Send to Salesroom"}
                 </button>
               </form>
             </section>
 
-            {/* Section 3: Finished Goods Store (Current Inventory for Sale) */}
-            <section className="bg-white p-8 rounded-[3rem] shadow-sm border border-green-50">
-              <h2 className="text-md font-black mb-6 text-green-700 border-b pb-4 uppercase italic">🥐 ফিনিশড গুডস স্টোর (Stock for Sale)</h2>
-              <div className="grid grid-cols-2 gap-4">
-                {finishedGoods.map((good) => (
-                  <div key={good.id} className="bg-green-50 p-5 rounded-[2rem] border-2 border-green-100 text-center">
-                    <p className="text-[9px] uppercase font-black text-green-500 mb-1">{good.itemName}</p>
-                    <p className="text-2xl font-black text-green-800">{good.quantity} <span className="text-xs">PCS</span></p>
-                    <p className="text-[8px] font-bold text-green-400 mt-1">Ready for Customer</p>
+            {/* Section 3: Today's Log (Split View List) */}
+            <section className="bg-white p-8 md:p-10 rounded-[3rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-8 border-b pb-4">Today's Production Log</h3>
+              <div className="space-y-4 max-h-[350px] overflow-y-auto pr-2">
+                {productions.map((p) => (
+                  <div key={p.id} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div>
+                      <p className="font-black text-gray-800 text-sm uppercase">{p.itemName}</p>
+                      <p className="text-[10px] font-bold text-gray-400 italic">{p.createdAt?.toDate().toLocaleTimeString('bn-BD')}</p>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <p className="font-black text-[#D9480F]">{p.quantity} <span className="text-[10px] uppercase font-bold">Pcs</span></p>
+                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${p.status === "Pending" ? "bg-orange-100 text-orange-600 animate-pulse" : "bg-green-100 text-green-600"}`}>
+                        {p.status}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
             </section>
           </div>
 
-          {/* Section 4: Daily Report Table */}
-          <section className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-5 border-b font-black text-slate-800 bg-slate-50 text-[10px] uppercase tracking-widest italic">আজকের প্রোডাকশন লগ (Report)</div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-400 text-[9px] uppercase font-black">
-                  <tr><th className="p-4">সময়</th><th className="p-4">আইটেম</th><th className="p-4">পরিমাণ</th><th className="p-4">অবস্থা</th></tr>
-                </thead>
-                <tbody className="text-slate-600 font-bold">
-                  {productions.map((p) => (
-                    <tr key={p.id} className="border-b hover:bg-orange-50 transition-all text-xs">
-                      <td className="p-4 text-slate-400">{p.createdAt?.toDate().toLocaleTimeString('bn-BD')}</td>
-                      <td className="p-4 text-orange-700 uppercase font-black">{p.itemName}</td>
-                      <td className="p-4">{p.quantity} Pcs</td>
-                      <td className="p-4"><span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-[8px] font-black uppercase">Stored</span></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
         </main>
+
+        <p className="text-center text-gray-400 text-[10px] pb-10 uppercase tracking-widest font-medium">
+          Bonomaya Kitchen Automation • Maverick
+        </p>
       </div>
+
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden" />
+      )}
     </div>
   );
 }
