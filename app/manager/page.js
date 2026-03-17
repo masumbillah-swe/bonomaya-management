@@ -15,7 +15,7 @@ import {
 
 export default function ManagerDashboard() {
   const router = useRouter();
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarOpen, setSidebarOpen] = useState(false); // Mobile Menu State
   const [activeSection, setActiveSection] = useState("dashboard"); 
   const [inventory, setInventory] = useState([]); 
   const [purchases, setPurchases] = useState([]); 
@@ -85,22 +85,33 @@ export default function ManagerDashboard() {
   return (
     <div className="min-h-screen bg-[#FDFCF0] flex flex-col lg:flex-row text-slate-900 font-sans tracking-tight">
       
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-[110] w-64 bg-[#1A1A1A] text-white transform transition-transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:static flex flex-col shadow-2xl`}>
+      {/* মোবাইল এর জন্য হ্যামবার্গার বার - শুধু মোবাইলে দেখাবে */}
+      <div className="lg:hidden bg-[#1A1A1A] p-4 flex justify-between items-center sticky top-0 z-[120]">
+        <h1 className="text-white font-bold italic">Bonomaya</h1>
+        <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="text-white p-1">
+          {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      {/* সাইডবার - মোবাইলের জন্য স্লাইড লজিক অ্যাড করা হয়েছে */}
+      <aside className={`fixed inset-y-0 left-0 z-[110] w-64 bg-[#1A1A1A] text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static flex flex-col shadow-2xl ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="p-8 text-center border-b border-white/5">
           <div className="bg-[#D9480F] w-12 h-12 rounded-full mx-auto flex items-center justify-center text-2xl font-bold mb-2 shadow-lg italic">B</div>
           <h2 className="text-lg font-bold italic tracking-tighter uppercase font-sans">ম্যানেজার প্যানেল</h2>
           <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-2 font-sans">বুনোমায়া লজিস্টিকস</p>
         </div>
         <nav className="flex-1 p-4 space-y-2 font-sans">
-          <button onClick={() => setActiveSection("dashboard")} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'dashboard' ? 'bg-[#D9480F]' : 'hover:bg-white/5 opacity-70'}`}><LayoutDashboard size={20} /> ড্যাশবোর্ড</button>
-          <button onClick={() => setActiveSection("inventory")} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'inventory' ? 'bg-[#D9480F]' : 'hover:bg-white/5 opacity-70'}`}><Package size={20} /> ইনভেন্টরি</button>
-          <button onClick={() => setActiveSection("reports")} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'reports' ? 'bg-[#D9480F]' : 'hover:bg-white/5 opacity-70'}`}><FileText size={20} /> রিপোর্টস</button>
+          <button onClick={() => { setActiveSection("dashboard"); setSidebarOpen(false); }} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'dashboard' ? 'bg-[#D9480F]' : 'hover:bg-white/5 opacity-70'}`}><LayoutDashboard size={20} /> ড্যাশবোর্ড</button>
+          <button onClick={() => { setActiveSection("inventory"); setSidebarOpen(false); }} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'inventory' ? 'bg-[#D9480F]' : 'hover:bg-white/5 opacity-70'}`}><Package size={20} /> ইনভেন্টরি</button>
+          <button onClick={() => { setActiveSection("reports"); setSidebarOpen(false); }} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'reports' ? 'bg-[#D9480F]' : 'hover:bg-white/5 opacity-70'}`}><FileText size={20} /> রিপোর্টস</button>
         </nav>
         <button onClick={() => auth.signOut().then(() => router.push("/login"))} className="p-4 bg-red-900/20 text-red-400 hover:bg-red-900 hover:text-white flex gap-2 justify-center mt-auto border-t border-white/5 transition-all"><LogOut size={18} /> লগআউট</button>
       </aside>
 
-      {/* Main Content */}
+      {/* মোবাইলে মেনু খোলা থাকলে ব্যাকগ্রাউন্ডে ক্লিক করলে মেনু বন্ধ হওয়ার জন্য */}
+      {isSidebarOpen && <div onClick={() => setSidebarOpen(false)} className="fixed inset-0 bg-black/50 z-[105] lg:hidden" />}
+
+      {/* মেইন কন্টেন্ট */}
       <main className="flex-1 p-6 md:p-10 overflow-y-auto h-screen">
         
         {/* Dashboard Analytics Section */}
@@ -114,7 +125,7 @@ export default function ManagerDashboard() {
                 </div>
                 <div className="flex gap-3 font-sans">
                     <button onClick={() => setActiveSection("inventory")} className="bg-[#D9480F] text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:scale-105 transition-all font-sans">বাজার এন্ট্রি</button>
-                    <button onClick={() => setActiveSection("reports")} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:scale-105 transition-all font-sans">রিপোর্ট দেখুন</button>
+                    <button onClick={() => setActiveSection("reports")} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-slate-200 hover:scale-105 transition-all font-sans">রিপোর্ট দেখুন</button>
                 </div>
             </div>
 
@@ -165,7 +176,7 @@ export default function ManagerDashboard() {
 
                 <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 font-sans">
                     <h3 className="text-sm font-black text-slate-800 uppercase mb-6 flex items-center gap-2 font-sans tracking-widest font-bold">
-                        <Package size={18} className="text-orange-500" /> স্টক ডিস্ট্রিবিউশন
+                        <Package size={18} className="text-orange-500" /> স্টক ড ডিস্ট্রিবিউশন
                     </h3>
                     <div className="h-64 w-full font-sans text-[10px] font-bold">
                         <ResponsiveContainer width="100%" height="100%">
@@ -219,7 +230,7 @@ export default function ManagerDashboard() {
                     <div className="flex flex-wrap gap-2 font-sans font-bold tracking-tighter uppercase">
                         <div className="relative flex-1 md:w-64 font-sans font-bold tracking-tighter uppercase">
                             <Search className="absolute left-3 top-2.5 text-slate-400 font-sans" size={16} />
-                            <input type="text" placeholder="আইটেম খুঁজুন..." className="pl-10 pr-4 py-2 w-full bg-slate-50 border rounded-xl text-sm outline-none focus:border-blue-500 font-sans font-bold uppercase tracking-tighter uppercase" onChange={(e) => setSearchTerm(e.target.value)} />
+                            <input type="text" placeholder="আইটেম খুঁজুন..." className="pl-10 pr-4 py-2 w-full bg-slate-50 border rounded-xl text-sm outline-none focus:border-blue-500 font-sans font-bold uppercase tracking-tighter" onChange={(e) => setSearchTerm(e.target.value)} />
                         </div>
                         <select onChange={(e) => setFilterStatus(e.target.value)} className="bg-slate-50 border rounded-xl px-3 py-2 text-xs font-bold outline-none cursor-pointer font-sans">
                             <option value="all">সব আইটেম</option><option value="low">স্টক কম</option><option value="out">স্টক নেই</option>
@@ -250,7 +261,7 @@ export default function ManagerDashboard() {
                             </td>
                             <td className="p-4 font-black text-blue-600 font-sans font-bold tracking-tighter uppercase tracking-tighter uppercase">৳{item.totalInvestment?.toLocaleString() || 0}</td>
                             <td className="p-4 text-center font-sans font-bold tracking-tighter uppercase">
-                              {item.quantity <= 0 ? <span className="text-red-600 bg-red-100 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">Out</span> : item.quantity < 10 ? <span className="text-orange-600 bg-orange-100 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">Low</span> : <span className="text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">OK</span>}
+                              {item.quantity <= 0 ? <span className="text-red-600 bg-red-100 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">Out</span> : item.quantity < 10 ? <span className="text-orange-600 bg-orange-100 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">Low</span> : <span className="text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase font-bold">OK</span>}
                             </td>
                           </tr>
                         ))}
@@ -266,11 +277,11 @@ export default function ManagerDashboard() {
                   <form onSubmit={handlePurchaseSubmit} className="space-y-4 font-sans font-bold tracking-tighter uppercase">
                     <div className="relative font-sans font-bold tracking-tighter uppercase">
                       <label className="text-[10px] font-black text-slate-500 uppercase ml-1 block mb-1 font-sans font-bold tracking-tighter uppercase">আইটেমের নাম</label>
-                      <input type="text" placeholder="নাম..." value={form.itemName} onFocus={() => setShowSuggestions(true)} onChange={(e) => {setForm({...form, itemName: e.target.value}); setShowSuggestions(true);}} className="w-full bg-white/5 border border-white/10 p-3.5 rounded-xl font-bold text-sm text-white focus:border-blue-500 outline-none font-sans font-bold tracking-tighter uppercase" required />
+                      <input type="text" placeholder="নাম..." value={form.itemName} onFocus={() => setShowSuggestions(true)} onChange={(e) => {setForm({...form, itemName: e.target.value}); setShowSuggestions(true);}} className="w-full bg-white/5 border border-white/10 p-3.5 rounded-xl font-bold text-sm text-white focus:border-orange-500 outline-none font-sans font-bold tracking-tighter uppercase" required />
                       {showSuggestions && form.itemName && (
                         <div className="absolute z-[200] w-full bg-white text-slate-900 mt-1 rounded-xl shadow-2xl max-h-48 overflow-y-auto font-sans font-bold tracking-tighter uppercase">
                             {inventory.filter(i => i.itemName.toLowerCase().includes(form.itemName.toLowerCase())).map(item => (
-                                <div key={item.id} className="p-3 hover:bg-orange-50 cursor-pointer text-sm font-bold border-b border-slate-50 flex justify-between uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase" onClick={() => {setForm({...form, itemName: item.itemName, unit: item.unit}); setShowSuggestions(false);}}>
+                                <div key={item.id} className="p-3 hover:bg-orange-50 cursor-pointer text-sm font-bold border-b border-slate-50 flex justify-between uppercase font-sans font-bold tracking-tighter uppercase" onClick={() => {setForm({...form, itemName: item.itemName, unit: item.unit}); setShowSuggestions(false);}}>
                                     <span className="font-sans font-bold tracking-tighter uppercase">{item.itemName}</span><span className="text-[10px] bg-slate-100 px-2 rounded font-sans font-bold tracking-tighter uppercase">{item.unit}</span>
                                 </div>
                             ))}
@@ -283,7 +294,7 @@ export default function ManagerDashboard() {
                         <div className="w-24 font-sans font-bold tracking-tighter uppercase"><label className="text-[10px] font-black text-slate-500 uppercase ml-1 block mb-1 font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">ইউনিট</label><select value={form.unit} onChange={(e) => setForm({...form, unit: e.target.value})} className="w-full bg-white/5 border border-white/10 p-3.5 rounded-xl font-bold text-xs text-white h-[50px] outline-none cursor-pointer font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase"><option className="text-black font-sans font-bold tracking-tighter uppercase" value="KG">KG</option><option className="text-black font-sans font-bold tracking-tighter uppercase" value="LTR">LTR</option><option className="text-black font-sans font-bold tracking-tighter uppercase" value="PCS">PCS</option></select></div>
                     </div>
                     <div className="font-sans font-bold tracking-tighter uppercase"><label className="text-[10px] font-black text-blue-400 uppercase ml-1 block mb-1 font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">মোট দাম (৳)</label><input type="number" placeholder="0.00" value={form.totalPrice} onChange={(e) => setForm({...form, totalPrice: e.target.value})} className="w-full bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl font-black text-blue-400 text-lg outline-none font-sans font-bold tracking-tighter uppercase" required /></div>
-                    <div className="p-3 bg-white/5 rounded-2xl border border-white/5 space-y-2 font-sans font-bold tracking-tighter uppercase font-medium font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase"><input type="text" placeholder="সাপ্লায়ার নাম" value={form.supplierName} onChange={(e) => setForm({...form, supplierName: e.target.value})} className="w-full bg-transparent border-b border-white/10 p-1 text-xs outline-none text-white font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase" /><input type="text" placeholder="সাপ্লায়ার ফোন" value={form.supplierNumber} onChange={(e) => setForm({...form, supplierNumber: e.target.value})} className="w-full bg-transparent p-1 text-xs outline-none text-white font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase" /></div>
+                    <div className="p-3 bg-white/5 rounded-2xl border border-white/5 space-y-2 font-sans font-bold tracking-tighter uppercase font-medium font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase"><input type="text" placeholder="সাপ্লায়ার নাম" value={form.supplierName} onChange={(e) => setForm({...form, supplierName: e.target.value})} className="w-full bg-transparent border-b border-white/10 p-1 text-xs outline-none text-white font-sans font-bold tracking-tighter uppercase" /><input type="text" placeholder="সাপ্লায়ার ফোন" value={form.supplierNumber} onChange={(e) => setForm({...form, supplierNumber: e.target.value})} className="w-full bg-transparent p-1 text-xs outline-none text-white font-sans font-bold tracking-tighter uppercase" /></div>
                     <button disabled={loading} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg hover:bg-blue-700 active:scale-95 transition-all font-black font-sans font-bold tracking-tighter uppercase font-black font-sans font-bold tracking-tighter uppercase font-black font-sans font-bold tracking-tighter uppercase">{loading ? "সেভ হচ্ছে..." : "স্টক কনফার্ম করুন"}</button>
                   </form>
                 </div>
@@ -296,55 +307,35 @@ export default function ManagerDashboard() {
         {activeSection === "reports" && (
           <div className="space-y-8 animate-in fade-in duration-500 font-sans font-bold tracking-tighter uppercase">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-white font-sans font-bold tracking-tighter uppercase">
-                <div className="bg-slate-900 p-6 rounded-3xl shadow-xl border-t-4 border-blue-500 font-sans font-bold tracking-tighter uppercase">
-                    <ShoppingBag className="text-blue-500 mb-2 font-sans font-bold tracking-tighter uppercase" size={24} />
-                    <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">মোট কেনাকাটা (চলতি মাস)</h3>
-                    <p className="text-2xl font-black tracking-tighter font-sans font-bold tracking-tighter uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">৳ {purchases.filter(p => {
-                      const m = new Date().getMonth() + 1;
-                      return Number(p.date?.split('/')[1]) === m;
-                    }).reduce((a, c) => a + Number(c.totalPrice), 0).toLocaleString()}</p>
-                </div>
-                <div className="bg-white p-6 rounded-3xl shadow-sm border-t-4 border-emerald-500 font-sans font-bold tracking-tighter uppercase">
-                    <Truck className="text-emerald-500 mb-2 font-sans font-bold tracking-tighter uppercase" size={24} />
-                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">মোট ভাউচার</h3>
-                    <p className="text-2xl font-black text-slate-800 tracking-tighter font-sans font-bold tracking-tighter uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">{purchases.length} টি</p>
-                </div>
-                <div className="bg-white p-6 rounded-3xl shadow-sm border-t-4 border-orange-500 font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">
-                    <Calendar className="text-orange-500 mb-2 font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase" size={24} />
-                    <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">শেষ বাজার তারিখ</h3>
-                    <p className="text-xl font-black text-slate-800 tracking-tight tracking-tighter font-sans font-bold tracking-tighter uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">{purchases[0]?.date || 'N/A'}</p>
-                </div>
-                <div className="bg-blue-600 p-6 rounded-3xl shadow-lg border-t-4 border-white/20 font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">
-                    <TrendingUp className="text-white/80 mb-2 font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase" size={24} />
-                    <h3 className="text-[10px] font-bold text-blue-100 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">বাজেট স্ট্যাটাস</h3>
-                    <p className="text-xl font-black italic tracking-tighter uppercase leading-none font-sans font-bold tracking-tighter uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">Healthy</p>
-                </div>
+                <div className="bg-slate-900 p-6 rounded-3xl shadow-xl border-t-4 border-blue-500 font-bold font-sans font-bold tracking-tighter uppercase"><ShoppingBag className="text-blue-500 mb-2 font-sans font-bold tracking-tighter uppercase" size={24} /><h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">মোট কেনাকাটা (মাস)</h3><p className="text-2xl font-black tracking-tighter font-sans font-bold tracking-tighter uppercase">৳ {purchases.filter(p => { const m = new Date().getMonth() + 1; return Number(p.date?.split('/')[1]) === m; }).reduce((a, c) => a + Number(c.totalPrice), 0).toLocaleString()}</p></div>
+                <div className="bg-white p-6 rounded-3xl shadow-sm border-t-4 border-emerald-500 font-sans font-bold tracking-tighter uppercase text-slate-800 font-bold font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase"><Truck className="text-emerald-500 mb-2 font-sans font-bold tracking-tighter uppercase" size={24} /><h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">ভাউচার</h3><p className="text-2xl font-black text-slate-800 tracking-tighter font-sans font-bold tracking-tighter uppercase">{purchases.length} টি</p></div>
+                <div className="bg-white p-6 rounded-3xl shadow-sm border-t-4 border-orange-500 font-sans font-bold tracking-tighter uppercase text-slate-800 font-bold font-sans font-bold tracking-tighter uppercase"><Calendar className="text-orange-500 mb-2 font-sans font-bold tracking-tighter uppercase" size={24} /><h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">শেষ বাজার</h3><p className="text-xl font-black text-slate-800 tracking-tight tracking-tighter font-sans font-bold tracking-tighter uppercase">{purchases[0]?.date || 'N/A'}</p></div>
+                <div className="bg-blue-600 p-6 rounded-3xl shadow-lg border-t-4 border-white/20 font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase"><TrendingUp className="text-white/80 mb-2 font-sans font-bold tracking-tighter uppercase" size={24} /><h3 className="text-[10px] font-bold text-blue-100 uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">বাজেট</h3><p className="text-xl font-black italic tracking-tighter uppercase leading-none font-sans font-bold tracking-tighter uppercase">Healthy</p></div>
             </div>
 
-            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">
-                <div className="p-7 bg-slate-50 border-b flex justify-between items-center font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">
-                    <div className="font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase">
-                        <h2 className="text-xl font-black text-slate-800 italic uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">বাজারের বিস্তারিত অডিট রিপোর্ট</h2>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">ভাউচার লিস্ট এবং ট্রানজাকশন হিস্ট্রি</p>
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden font-sans font-bold tracking-tighter uppercase">
+                <div className="p-7 bg-slate-50 border-b flex justify-between items-center font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">
+                    <div className="font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">
+                        <h2 className="text-xl font-black text-slate-800 italic uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">বাজারের বিস্তারিত রিপোর্ট</h2>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">ভাউচার লিস্ট এবং ট্রানজাকশন হিস্ট্রি</p>
                     </div>
-                    <button onClick={exportToExcel} className="bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition shadow-lg shadow-slate-200 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">Export Excel</button>
+                    <button onClick={exportToExcel} className="bg-slate-900 text-white px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition shadow-lg shadow-slate-200 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">Export Excel</button>
                 </div>
                 <div className="overflow-x-auto font-sans font-bold tracking-tighter uppercase">
                     <table className="w-full text-left font-sans font-bold uppercase tracking-tighter">
                         <thead>
-                            <tr className="bg-slate-800 text-white text-[10px] font-black uppercase tracking-[0.2em] font-sans font-bold tracking-tighter uppercase">
-                                <th className="p-5 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">তারিখ</th><th className="p-5 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">আইটেম</th><th className="p-5 text-center font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">পরিমাণ</th><th className="p-5 text-right font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">মোট দাম (৳)</th><th className="p-5 text-center font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase font-bold font-sans font-bold tracking-tighter uppercase">দর (প্রতি ইউনিট)</th><th className="p-5 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">সাপ্লায়ার</th>
+                            <tr className="bg-slate-800 text-white text-[10px] font-black uppercase tracking-[0.2em] font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">
+                                <th className="p-5 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">তারিখ</th><th className="p-5 font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">আইটেম</th><th className="p-5 text-center font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">পরিমাণ</th><th className="p-5 text-right font-sans font-bold tracking-tighter uppercase tracking-widest font-sans font-bold tracking-tighter uppercase">মোট দাম (৳)</th><th className="p-5 text-center font-sans font-bold tracking-tighter uppercase font-bold font-sans font-bold tracking-tighter uppercase">দর</th>
                             </tr>
                         </thead>
                         <tbody className="text-sm font-sans font-bold tracking-tighter uppercase">
                             {purchases.map((p, idx) => (
-                                <tr key={p.id} className={`border-b border-slate-50 hover:bg-orange-50/20 transition-all font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
+                                <tr key={p.id} className={`border-b border-slate-50 hover:bg-orange-50/20 transition-all font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`}>
                                     <td className="p-5 font-bold text-slate-400 text-xs font-sans font-bold tracking-tighter uppercase">{p.date}</td>
-                                    <td className="p-5 font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase"><span className="font-black text-slate-800 uppercase tracking-tight font-sans font-bold tracking-tighter uppercase tracking-tighter font-sans font-bold tracking-tighter uppercase">{p.itemName}</span></td>
-                                    <td className="p-5 text-center font-bold text-slate-700 font-sans font-bold tracking-tighter font-sans font-bold tracking-tighter">{p.quantity} {p.unit}</td>
-                                    <td className="p-5 text-right font-black text-blue-600 text-md font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase">৳{p.totalPrice?.toLocaleString()}</td>
-                                    <td className="p-5 text-center text-slate-400 font-bold italic font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase">৳{p.perUnitPrice || 0}</td>
-                                    <td className="p-5 font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-medium text-slate-600 font-sans font-bold tracking-tighter uppercase font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">{p.supplierName || 'N/A'}</td>
+                                    <td className="p-5 font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase tracking-tighter uppercase"><span className="font-black text-slate-800 uppercase tracking-tight font-sans font-bold tracking-tighter uppercase">{p.itemName}</span></td>
+                                    <td className="p-5 text-center font-bold text-slate-700 font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">{p.quantity} {p.unit}</td>
+                                    <td className="p-5 text-right font-black text-blue-600 text-md font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">৳{p.totalPrice?.toLocaleString()}</td>
+                                    <td className="p-5 text-center text-slate-400 font-bold italic font-sans font-bold tracking-tighter uppercase font-sans font-bold tracking-tighter uppercase">৳{p.perUnitPrice || 0}</td>
                                 </tr>
                             ))}
                         </tbody>
