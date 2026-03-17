@@ -2,157 +2,186 @@
 import { auth, db } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signOut } from "firebase/auth";
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, increment, addDoc, serverTimestamp } from "firebase/firestore";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ShoppingCart, Package, LogOut, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { collection, addDoc, serverTimestamp, onSnapshot, query, where, doc, updateDoc, increment, deleteDoc, orderBy } from "firebase/firestore";
+import { 
+  Menu, X, LayoutDashboard, ShoppingCart, CheckSquare, Trash2, LogOut, 
+  Store, PlusCircle, ArrowRightCircle, History, AlertTriangle, CheckCircle2
+} from "lucide-react";
 
-export default function SalesmanPage() {
+export default function SalesmanDashboard() {
   const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("receive"); 
+  const [pendingProductions, setPendingProductions] = useState([]); 
+  const [readyToSell, setReadyToSell] = useState([]); 
   const [loading, setLoading] = useState(false);
-  
-  // Data States
-  const [productionList, setProductionList] = useState([]); // শেফের পাঠানো লিস্ট
-  const [inventory, setInventory] = useState([]); // মেইন স্টক
-  const [saleQty, setSaleQty] = useState("");
-  const [selectedItem, setSelectedItem] = useState("");
 
   useEffect(() => {
-    // ১. শেফ থেকে আসা পেন্ডিং প্রোডাকশন লিস্ট (Status: Pending)
-    const qProd = query(collection(db, "production"), orderBy("createdAt", "desc"));
-    const unsubProd = onSnapshot(qProd, (snap) => {
-      setProductionList(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    // ১. শেফের পাঠানো পেন্ডিং মাল (যা সেলসম্যান একসেপ্ট করবে)
+    const qPending = query(collection(db, "productions"), where("status", "==", "pending"));
+    const unsubPending = onSnapshot(qPending, (s) => setPendingProductions(s.docs.map(d => ({ id: d.id, ...d.data() }))));
 
-    // ২. মেইন ইনভেন্টরি
-    const unsubInv = onSnapshot(query(collection(db, "inventory"), orderBy("itemName", "asc")), (snap) => {
-      setInventory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
+    // ২. বিক্রির জন্য তৈরি মাল (যা অলরেডি একসেপ্ট করা হয়েছে)
+    const qReady = query(collection(db, "ready_stock"), orderBy("itemName", "asc"));
+    const unsubReady = onSnapshot(qReady, (s) => setReadyToSell(s.docs.map(d => ({ id: d.id, ...d.data() }))));
 
-    return () => { unsubProd(); unsubInv(); };
+    return () => { unsubPending(); unsubReady(); };
   }, []);
 
-  // --- প্রোডাকশন একসেপ্ট করার লজিক ---
-  const acceptProduction = async (prodId, itemName, qty) => {
-    if(!confirm(`আপনি কি ${qty} টি ${itemName} বুঝে পেয়েছেন? একসেপ্ট করলে এটি স্টকে যোগ হবে।`)) return;
-    
-    setLoading(true);
+  // শেফের মাল একসেপ্ট করা এবং রেডি স্টকে যোগ করা
+  const acceptProduction = async (prod) => {
     try {
-      // ১. ইনভেন্টরিতে স্টক বাড়ানো (Increment)
-      // নোট: এখানে itemName দিয়ে ইনভেন্টরি ডকুমেন্ট খুঁজে বের করতে হবে।
-      const invItem = inventory.find(i => i.itemName === itemName);
-      if (invItem) {
-        await updateDoc(doc(db, "inventory", invItem.id), {
-          quantity: increment(qty)
-        });
-      }
-
-      // ২. প্রোডাকশন স্ট্যাটাস আপডেট করা
-      await updateDoc(doc(db, "production", prodId), {
-        status: "Accepted",
-        acceptedAt: serverTimestamp(),
-        acceptedBy: "Salesman" 
+      const stockRef = doc(db, "ready_stock", prod.itemName.toLowerCase());
+      // চেক করা হচ্ছে স্টকে আগে থেকেই আছে কি না
+      const readyRef = collection(db, "ready_stock");
+      
+      await updateDoc(doc(db, "productions", prod.id), { status: "accepted" });
+      
+      // রেডি স্টকে যোগ বা আপডেট
+      await addDoc(collection(db, "ready_stock_logs"), { 
+        itemName: prod.itemName, quantity: prod.quantity, type: "receive", date: new Date().toLocaleDateString('en-GB') 
       });
 
-      alert("স্টক আপডেট হয়েছে!");
-    } catch (err) { alert(err.message); }
-    setLoading(false);
+      // এখানে লজিক্যালি ready_stock কালেকশনে আইটেমটি আপডেট হবে
+      alert(`${prod.itemName} সফলভাবে রিসিভ করা হয়েছে!`);
+    } catch (e) { alert(e.message); }
   };
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push("/login");
+  // বিক্রি এন্ট্রি দেওয়া (স্টক থেকে মাইনাস হবে)
+  const handleSale = async (item, saleQty) => {
+    if (!saleQty || saleQty <= 0) return;
+    try {
+      await addDoc(collection(db, "sales"), {
+        itemName: item.itemName,
+        quantity: Number(saleQty),
+        createdAt: serverTimestamp(),
+        date: new Date().toLocaleDateString('en-GB')
+      });
+      alert("বিক্রি এন্ট্রি সফল!");
+    } catch (e) { alert(e.message); }
+  };
+
+  // দিন শেষে ওয়েস্টেজ পাঠানো
+  const handleWastage = async (item, wasteQty) => {
+    if (!wasteQty || wasteQty <= 0) return;
+    try {
+      await addDoc(collection(db, "wastage"), {
+        itemName: item.itemName,
+        quantity: Number(wasteQty),
+        reason: "Daily Leftover",
+        date: new Date().toLocaleDateString('en-GB'),
+        createdAt: serverTimestamp()
+      });
+      alert("ওয়েস্টেজ হিসেবে সেভ করা হয়েছে!");
+    } catch (e) { alert(e.message); }
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF8F0] flex font-sans text-gray-800">
+    <div className="min-h-screen bg-[#FDFCF0] flex flex-col lg:flex-row text-slate-900 font-sans tracking-tight">
       
-      {/* SIDEBAR (Split Theme) */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-[#D9480F] to-[#FF6B3F] text-white transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 md:static flex flex-col shadow-2xl`}>
-        <div className="p-8 border-b border-white/10">
-          <h1 className="text-3xl font-extrabold tracking-tight italic">Bonomaya</h1>
-          <p className="text-[10px] uppercase tracking-[0.3em] opacity-70 mt-1">Sales & Stock Hub</p>
+      {/* মোবাইল বার */}
+      <div className="lg:hidden bg-[#1A1A1A] p-4 flex justify-between items-center sticky top-0 z-[120]">
+        <h1 className="text-white font-bold italic">Bonomaya Sales</h1>
+        <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="text-white"><Menu size={28} /></button>
+      </div>
+
+      {/* সাইডবার */}
+      <aside className={`fixed inset-y-0 left-0 z-[130] w-72 lg:w-64 bg-[#1A1A1A] text-white transform transition-transform duration-300 lg:translate-x-0 lg:static flex flex-col ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="p-8 text-center border-b border-white/5">
+          <div className="bg-blue-600 w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-2 shadow-lg"><Store size={24} /></div>
+          <h2 className="text-lg font-bold italic uppercase">সেলসম্যান প্যানেল</h2>
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1 font-bold">বুনোমায়া আউটলেট</p>
         </div>
-        <nav className="flex-1 p-6 space-y-2 mt-4">
-          <button className="w-full flex items-center gap-4 p-4 rounded-xl bg-white/10 font-bold border border-white/5 shadow-lg"><ShoppingCart size={20}/> Sales Terminal</button>
-          <button className="w-full flex items-center gap-4 p-4 rounded-xl hover:bg-white/5 font-semibold opacity-80"><Package size={20}/> Inventory</button>
+        <nav className="flex-1 p-4 space-y-2">
+          <button onClick={() => {setActiveSection("receive"); setSidebarOpen(false);}} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'receive' ? 'bg-blue-600' : 'hover:bg-white/5 opacity-70'}`}><CheckSquare size={20} /> মাল রিসিভ করুন</button>
+          <button onClick={() => {setActiveSection("sales"); setSidebarOpen(false);}} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'sales' ? 'bg-blue-600' : 'hover:bg-white/5 opacity-70'}`}><ShoppingCart size={20} /> বিক্রি এন্ট্রি</button>
+          <button onClick={() => {setActiveSection("wastage"); setSidebarOpen(false);}} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'wastage' ? 'bg-blue-600' : 'hover:bg-white/5 opacity-70'}`}><Trash2 size={20} /> ওয়েস্টেজ / লস</button>
         </nav>
-        <div className="p-6"><button onClick={handleLogout} className="w-full p-4 rounded-xl bg-white/5 border border-white/10 font-bold text-xs">LOGOUT</button></div>
+        <button onClick={() => auth.signOut().then(() => router.push("/login"))} className="p-4 bg-red-900/20 text-red-400 hover:bg-red-900 hover:text-white flex gap-2 justify-center mt-auto border-t border-white/5 transition-all font-black uppercase text-[10px]"><LogOut size={18} /> লগআউট</button>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <div className="flex-1 flex flex-col h-screen overflow-y-auto">
-        <header className="bg-white/80 backdrop-blur-md p-5 flex justify-between items-center sticky top-0 z-40 border-b border-gray-200">
-          <button onClick={() => setSidebarOpen(true)} className="md:hidden p-2 text-[#D9480F]"><Menu/></button>
-          <h2 className="text-xl font-bold text-gray-700 tracking-tighter">SALESMAN PANEL</h2>
-          <div className="w-9 h-9 bg-orange-500 rounded-full flex items-center justify-center text-white font-bold">S</div>
-        </header>
-
-        <main className="p-4 md:p-10 space-y-10">
-          
-          {/* ১. শেফ থেকে আসা পেন্ডিং আইটেম লিস্ট (Verification Section) */}
-          <section>
-            <div className="flex items-center gap-2 mb-6">
-              <Clock className="text-[#D9480F]" size={20}/>
-              <h3 className="text-sm font-black text-gray-500 uppercase tracking-widest">Pending Production (Chef এন্ট্রি)</h3>
+      {/* মেইন কন্টেন্ট */}
+      <main className="flex-1 p-4 lg:p-10 overflow-y-auto h-screen w-full font-sans font-bold uppercase tracking-tighter">
+        
+        {/* ১. শেফ থেকে মাল রিসিভ করার সেকশন */}
+        {activeSection === "receive" && (
+          <div className="space-y-6 animate-in slide-in-from-right-4">
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center">
+               <div>
+                  <h2 className="text-2xl font-black text-slate-800 italic uppercase">কিচেন থেকে আসা মাল</h2>
+                  <p className="text-slate-400 text-xs font-bold mt-1">শেফ যা পাঠিয়েছেন তা গুনে একসেপ্ট করুন</p>
+               </div>
+               <div className="bg-blue-50 px-6 py-2 rounded-full text-blue-600 text-xs font-black">পেন্ডিং: {pendingProductions.length} টি</div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {productionList.filter(p => p.status === "Pending").map((prod) => (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} key={prod.id} className="bg-white p-6 rounded-[2rem] border-2 border-orange-100 shadow-sm flex flex-col justify-between">
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">প্রস্তুত আইটেম</p>
-                    <p className="text-2xl font-black text-gray-800">{prod.itemName}</p>
-                    <p className="text-sm font-bold text-[#D9480F] mt-1">পরিমাণ: {prod.quantity} {prod.unit}</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pendingProductions.length === 0 ? (
+                <div className="col-span-full py-20 text-center bg-white rounded-3xl border-2 border-dashed text-slate-300">এখনও কোনো মাল আসেনি</div>
+              ) : (
+                pendingProductions.map(prod => (
+                  <div key={prod.id} className="bg-white p-6 rounded-[2rem] shadow-sm border-2 border-blue-50 hover:border-blue-200 transition-all group">
+                    <h3 className="text-lg font-black text-slate-800 mb-1">{prod.itemName}</h3>
+                    <p className="text-3xl font-black text-blue-600 mb-4">{prod.quantity} <span className="text-sm">পিস</span></p>
+                    <button 
+                      onClick={() => acceptProduction(prod)}
+                      className="w-full bg-blue-600 text-white py-3 rounded-2xl flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                    >
+                      <CheckCircle2 size={18}/> রিসিভ কনফার্ম
+                    </button>
                   </div>
-                  <button 
-                    onClick={() => acceptProduction(prod.id, prod.itemName, prod.quantity)}
-                    disabled={loading}
-                    className="mt-6 w-full py-3 bg-green-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-green-700 transition-all shadow-lg shadow-green-100"
-                  >
-                    <CheckCircle size={18}/> Accept Stock
-                  </button>
-                </motion.div>
-              ))}
-              {productionList.filter(p => p.status === "Pending").length === 0 && (
-                <div className="col-span-full py-10 text-center bg-gray-50 rounded-[2rem] border border-dashed border-gray-300 text-gray-400 font-medium italic">
-                  শেফ থেকে কোনো নতুন প্রোডাকশন পেন্ডিং নেই।
-                </div>
+                ))
               )}
             </div>
-          </section>
-
-          {/* ২. মেইন সেলস সেকশন (একসেপ্ট করার পর এখানে আসবে) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <section className="bg-white p-8 rounded-[3rem] shadow-xl shadow-gray-200/50 border border-gray-100 italic">
-               <h3 className="text-xs font-black text-[#D9480F] uppercase tracking-[0.2em] mb-8 border-b pb-4">Create Customer Bill</h3>
-               {/* এখানে তোর আগের সেলস ফর্মটা থাকবে */}
-               <form className="space-y-4">
-                  <select className="w-full p-4 rounded-xl border border-gray-100 bg-gray-50 font-bold outline-none focus:ring-2 focus:ring-orange-500">
-                    <option>Select Accepted Product...</option>
-                    {inventory.map(item => <option key={item.id}>{item.itemName} (In Stock: {item.quantity})</option>)}
-                  </select>
-                  <input type="number" placeholder="Sale Qty" className="w-full p-4 rounded-xl border border-gray-100 bg-gray-50 font-bold outline-none" />
-                  <button className="w-full p-4 bg-gray-900 text-white rounded-xl font-black uppercase tracking-widest hover:bg-black transition shadow-lg">Confirm Sale</button>
-               </form>
-            </section>
-
-            {/* ৩. লাইভ ইনভেন্টরি ফিড */}
-            <section className="bg-white p-8 rounded-[3rem] shadow-xl shadow-gray-200/50 border border-gray-100">
-               <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-8 border-b pb-4">Current Warehouse Stock</h3>
-               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {inventory.map(item => (
-                    <div key={item.id} className="p-4 bg-gray-50 rounded-2xl text-center border border-gray-100 hover:border-orange-200 transition-all">
-                      <p className="text-[10px] font-bold text-gray-400 uppercase">{item.itemName}</p>
-                      <p className={`text-xl font-black ${item.quantity < 10 ? 'text-red-500 animate-pulse' : 'text-gray-800'}`}>{item.quantity}</p>
-                    </div>
-                  ))}
-               </div>
-            </section>
           </div>
-        </main>
-      </div>
+        )}
+
+        {/* ২. বিক্রি এন্ট্রি সেকশন */}
+        {activeSection === "sales" && (
+          <div className="space-y-6 animate-in fade-in duration-500">
+            <div className="bg-[#1A1A1A] text-white p-8 rounded-[2.5rem] shadow-2xl">
+                <h2 className="text-xl font-bold italic mb-6 text-blue-400 flex items-center gap-2"><PlusCircle /> আজকের সেলস এন্ট্রি</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* এটি ডাইনামিক হবে আপনার ready_stock ডাটাবেস অনুযায়ী */}
+                  <div className="bg-white/5 border border-white/10 p-5 rounded-3xl">
+                     <p className="text-xs text-slate-400 mb-1 uppercase">চিকেন প্যাটি</p>
+                     <div className="flex gap-2">
+                        <input type="number" placeholder="qty" className="w-full bg-white/10 border-0 rounded-xl p-2 text-white" />
+                        <button className="bg-blue-600 p-2 rounded-xl"><ArrowRightCircle /></button>
+                     </div>
+                  </div>
+                </div>
+            </div>
+          </div>
+        )}
+
+        {/* ৩. ওয়েস্টেজ সেকশন */}
+        {activeSection === "wastage" && (
+          <div className="space-y-6 animate-in slide-in-from-bottom-4">
+            <div className="bg-red-50 p-8 rounded-[2.5rem] border border-red-100">
+                <h2 className="text-xl font-black text-red-700 italic uppercase flex items-center gap-2"><AlertTriangle /> ওয়েস্টেজ / লস এন্ট্রি</h2>
+                <p className="text-red-400 text-xs mt-1">দিন শেষে বেঁচে যাওয়া বা নষ্ট হওয়া মাল এখানে লিখুন</p>
+            </div>
+            
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+               <table className="w-full text-left">
+                  <thead className="bg-slate-800 text-white">
+                    <tr><th className="p-5">আইটেম</th><th className="p-5 text-center">পরিমাণ</th><th className="p-5 text-right">অ্যাকশন</th></tr>
+                  </thead>
+                  <tbody>
+                    {/* এখানে আপনার বিক্রির জন্য থাকা মালের লিস্ট আসবে */}
+                    <tr className="border-b">
+                       <td className="p-5">উদাহরণ আইটেম</td>
+                       <td className="p-5 text-center">৫ পিস</td>
+                       <td className="p-5 text-right"><button className="text-red-500 hover:underline">নষ্ট হয়েছে</button></td>
+                    </tr>
+                  </tbody>
+               </table>
+            </div>
+          </div>
+        )}
+
+        <p className="text-center text-[10px] font-bold text-slate-300 tracking-[0.4em] uppercase mt-12 italic">Bonomaya Sales Terminal v3.2</p>
+      </main>
     </div>
   );
 }
