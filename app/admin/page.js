@@ -13,7 +13,10 @@ import {
   LineChart, Line 
 } from "recharts";
 
-export default function AdminDashboard() {
+// দারোয়ানকে নিয়ে আসা হলো
+import withAuth from "@/components/withAuth";
+
+function AdminDashboard() {
   const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard"); 
@@ -58,7 +61,7 @@ export default function AdminDashboard() {
         <div className="p-8 text-center border-b border-white/5">
           <div className="bg-red-600 w-12 h-12 rounded-full mx-auto flex items-center justify-center text-2xl font-bold mb-2 shadow-lg italic">A</div>
           <h2 className="text-lg font-bold italic tracking-tighter uppercase">এডমিন প্যানেল</h2>
-          <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1 font-bold">বনমায়া কন্ট্রোল</p>
+          <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1 font-bold">বনমায়া কন্ট্রোল</p>
         </div>
         <nav className="flex-1 p-4 space-y-2 font-sans">
           <button onClick={() => {setActiveSection("dashboard"); setSidebarOpen(false);}} className={`w-full text-left p-3 rounded-xl flex gap-3 transition-all ${activeSection === 'dashboard' ? 'bg-red-600' : 'hover:bg-white/5 opacity-70'}`}><LayoutDashboard size={20} /> ড্যাশবোর্ড</button>
@@ -74,13 +77,13 @@ export default function AdminDashboard() {
       {/* মেইন কন্টেন্ট */}
       <main className="flex-1 p-4 lg:p-10 overflow-y-auto h-screen w-full font-sans font-bold uppercase tracking-tighter">
         
-        {/* ১. এডমিন ড্যাশবোর্ড ওভারভিউ */}
+        {/* ড্যাশবোর্ড ওভারভিউ */}
         {activeSection === "dashboard" && (
           <div className="space-y-8 animate-in fade-in duration-700">
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
                     <h2 className="text-3xl font-black text-slate-800 italic uppercase tracking-tighter">সিস্টেম কন্ট্রোল</h2>
-                    <p className="text-slate-400 text-xs font-bold mt-1">বনমায়ার সকল কার্যক্রমের সারসংক্ষেপ</p>
+                    <p className="text-slate-400 text-xs font-bold mt-1">বনমায়ার সকল কার্যক্রমের সারসংক্ষেপ</p>
                 </div>
                 <div className="flex gap-2">
                    <div className="bg-green-50 text-green-600 px-4 py-2 rounded-xl text-[10px]">সিস্টেম অনলাইন</div>
@@ -97,7 +100,7 @@ export default function AdminDashboard() {
                     <p className="text-2xl font-black text-slate-800">{productions.length} টি</p>
                 </div>
                 <div className="bg-white p-6 rounded-3xl shadow-sm border-b-4 border-red-500">
-                    <p className="text-[10px] text-slate-400 mb-1">ওয়েস্টেজ (লস)</p>
+                    <p className="text-[10px] text-slate-400 mb-1">ওয়েস্টেজ (লস)</p>
                     <p className="text-2xl font-black text-red-600">{totalWastage} এন্ট্রি</p>
                 </div>
                 <div className="bg-[#1A1A1A] text-white p-6 rounded-3xl shadow-lg border-b-4 border-red-600">
@@ -106,7 +109,6 @@ export default function AdminDashboard() {
                 </div>
             </div>
 
-            {/* গ্রাফ সেকশন */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border h-[400px]">
                     <h3 className="text-sm mb-6 flex items-center gap-2"><BarChart3 size={18} /> প্রোডাকশন বনাম সেলস</h3>
@@ -133,7 +135,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ২. লাইভ অডিট - শেফ ও সেলসম্যানের কাজ দেখা */}
+        {/* অডিট সেকশন */}
         {activeSection === "audit" && (
           <div className="space-y-6 animate-in slide-in-from-right-4">
              <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
@@ -156,7 +158,7 @@ export default function AdminDashboard() {
                 </section>
 
                 <section className="bg-white rounded-[2.5rem] shadow-sm border overflow-hidden">
-                    <div className="p-6 bg-red-50 border-b font-black italic text-red-700">লস ও ওয়েস্টেজ অডিট</div>
+                    <div className="p-6 bg-red-50 border-b font-black italic text-red-700">লস ও ওয়েস্টেজ অডিট</div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs uppercase">
                             <thead><tr className="bg-slate-100"><th className="p-4">আইটেম</th><th className="p-4 text-center">পরিমাণ</th><th className="p-4">কারণ</th></tr></thead>
@@ -176,10 +178,10 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ৩. স্টক লেজার (ম্যানেজার প্যানেলের মতো কিন্তু ভিউ অনলি) */}
+        {/* ইনভেন্টরি সেকশন */}
         {activeSection === "inventory" && (
             <div className="bg-white rounded-[2.5rem] shadow-sm border overflow-hidden">
-                <div className="p-7 bg-slate-900 text-white flex justify-between items-center font-sans">
+                <div className="p-7 bg-slate-900 text-white flex justify-between items-center font-sans font-bold">
                     <h2 className="text-xl font-black italic uppercase">মাস্টার ইনভেন্টরি অডিট</h2>
                 </div>
                 <div className="overflow-x-auto">
@@ -189,7 +191,7 @@ export default function AdminDashboard() {
                         </thead>
                         <tbody>
                             {inventory.map(item => (
-                                <tr key={item.id} className="border-b hover:bg-slate-50 transition-all font-sans">
+                                <tr key={item.id} className="border-b hover:bg-slate-50 transition-all">
                                     <td className="p-5 font-black text-slate-800">{item.itemName}</td>
                                     <td className="p-5 text-center">{item.quantity} {item.unit}</td>
                                     <td className="p-5 text-right font-black text-blue-600">৳{item.totalInvestment?.toLocaleString()}</td>
@@ -204,18 +206,21 @@ export default function AdminDashboard() {
             </div>
         )}
 
-        {/* ৪. রিপোর্ট ডাউনলোড */}
+        {/* রিপোর্ট সেকশন */}
         {activeSection === "reports" && (
             <div className="bg-slate-900 p-12 rounded-[3.5rem] text-center text-white border-4 border-red-600/20">
                 <FileText size={60} className="mx-auto mb-6 text-red-500" />
                 <h2 className="text-3xl font-black italic uppercase tracking-tighter">মাস্টার ডাটা এক্সপোর্ট</h2>
-                <p className="text-gray-400 mt-2 font-sans mb-10 lowercase">সকল ট্রানজাকশন এবং ইনভেন্টরি হিস্ট্রি একসাথে ডাউনলোড করুন</p>
-                <button onClick={exportMasterReport} className="bg-white text-slate-900 px-10 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">Download All Data (.xlsx)</button>
+                <p className="text-gray-400 mt-2 font-sans mb-10 lowercase font-bold">সকল ট্রানজাকশন এবং ইনভেন্টরি হিস্ট্রি ডাউনলোড করুন</p>
+                <button onClick={exportMasterReport} className="bg-white text-slate-900 px-10 py-4 rounded-2xl font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl">Download Data (.xlsx)</button>
             </div>
         )}
 
-        <p className="text-center text-[10px] font-bold text-slate-300 tracking-[0.4em] uppercase mt-12 italic">Bonomaya Admin Command v4.0</p>
+        <p className="text-center text-[10px] font-bold text-slate-300 tracking-[0.4em] uppercase mt-12 italic font-sans font-bold">Bonomaya Admin Command v4.0</p>
       </main>
     </div>
   );
 }
+
+// দারোয়ানকে দিয়ে পেজটি লক করে এক্সপোর্ট করা হলো
+export default withAuth(AdminDashboard, "Admin");
