@@ -140,7 +140,7 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-12 text-center">
-            <p className="text-slate-300 text-[8px] font-black uppercase tracking-[0.6em] font-sans">Developed by Masum Billah Maverick</p>
+            <p className="text-slate-300 text-[8px] font-black uppercase tracking-[0.6em] font-sans">Bonomaya Group</p>
           </div>
         </motion.div>
       </div>
