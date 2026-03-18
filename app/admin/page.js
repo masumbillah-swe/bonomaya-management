@@ -14,7 +14,7 @@ import {
 } from "recharts";
 
 // দারোয়ানকে নিয়ে আসা হলো
-import withAuth from "@/components/withAuth"; // পাথটা ঠিক আছে তো?
+import withAuth from "../../components/withAuth";
 
 function AdminDashboard() {
   const router = useRouter();
