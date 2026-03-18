@@ -244,4 +244,4 @@ function ManagerDashboard() {
     </div>
   );
 }
-export default withAuth(ManagerDashboard, "Chef");
+export default withAuth(ManagerDashboard, "manager");

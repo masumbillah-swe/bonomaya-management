@@ -8,7 +8,8 @@ import { motion } from "framer-motion";
 import { Mail, Lock, Eye, EyeOff, Loader2, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  // ১. ইমেইলের বদলে employeeId স্টেট (BNM1001 এর জন্য)
+  const [employeeId, setEmployeeId] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,22 +19,30 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // ২. BNM1001 কে bnm1001@bonomaya.com বানানোর লজিক
+      const formattedID = employeeId.trim().toLowerCase();
+      const loginEmail = `${formattedID}@bonomaya.com`;
+
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, password);
       const user = userCredential.user;
 
+      // ৩. ফায়ারস্টোর থেকে রোল চেক করে রিডাইরেক্ট করা
       const userDoc = await getDoc(doc(db, "users", user.uid));
       if (userDoc.exists()) {
         const role = userDoc.data().role?.toLowerCase();
+        
+        // আপনার ম্যানেজার রোলের জন্য এই কন্ডিশনগুলো কাজ করবে
         if (role === "admin") router.push("/admin");
-        else if (role === "manager") router.push("/manager");
+        else if (role === "manager") router.push("/manager"); // ম্যানেজার হলে এখানে যাবে
         else if (role === "chef") router.push("/chef");
         else if (role === "salesman") router.push("/salesman");
         else router.push("/dashboard");
       } else {
-        throw new Error("User role not assigned!");
+        throw new Error("User role not assigned in Firestore!");
       }
     } catch (err) {
-      alert("Error: " + err.message);
+      // ৪. সুন্দর করে এরর মেসেজ দেখানো
+      alert("Error: " + (err.code === "auth/user-not-found" ? "ভুল আইডি!" : "ভুল পাসওয়ার্ড বা আইডি!"));
     }
     setLoading(false);
   };
@@ -75,7 +84,6 @@ export default function LoginPage() {
         >
           {/* Header */}
           <div className="mb-10 text-center md:text-left">
-            {/* মোবাইল ভিউতে আইকন বাদ দিয়ে টেক্সট */}
             <div className="md:hidden mb-6">
                 <h1 className="text-sm font-black tracking-[0.5em] text-[#D9480F] uppercase italic">
                     Bonomaya
@@ -92,14 +100,14 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest font-sans">Identity Email</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest font-sans">Employee ID</label>
               <div className="relative group">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-[#D9480F] transition-colors" size={18} />
                 <input
-                  type="email"
-                  placeholder="name@bonomaya.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  placeholder="e.g. BNM1001"
+                  value={employeeId}
+                  onChange={(e) => setEmployeeId(e.target.value)}
                   required
                   className="w-full bg-[#F8F9FA] border-2 border-slate-50 p-4 pl-12 rounded-2xl font-bold text-sm outline-none focus:border-[#D9480F] focus:bg-white transition-all font-sans"
                 />

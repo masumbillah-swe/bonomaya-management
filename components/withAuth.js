@@ -19,6 +19,8 @@ export default function withAuth(Component, allowedRole) {
         try {
           const userDoc = await getDoc(doc(db, "users", user.uid));
           const userRole = userDoc.data()?.role?.toLowerCase();
+          
+          // যদি ডাটাবেসের রোল আর পেজের রোল মিলে যায়, তবেই ঢুকতে দিবে
           if (userRole === allowedRole.toLowerCase()) {
             setLoading(false);
           } else {
@@ -33,7 +35,7 @@ export default function withAuth(Component, allowedRole) {
 
     if (loading) return (
       <div className="fixed inset-0 z-[999] h-screen w-screen flex items-center justify-center bg-[#0A0A0A]">
-        <h1 className="text-white font-black italic text-2xl animate-pulse tracking-tighter uppercase">Bonomaya Security...</h1>
+        <h1 className="text-white font-black italic text-2xl animate-pulse uppercase">Bonomaya Security...</h1>
       </div>
     );
 
