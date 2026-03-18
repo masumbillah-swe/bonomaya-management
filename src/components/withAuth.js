@@ -13,25 +13,41 @@ export default function withAuth(Component, allowedRole) {
     useEffect(() => {
       const unsubscribe = onAuthStateChanged(auth, async (user) => {
         if (!user) {
-          router.push("/login");
+          // ১. লগইন না থাকলে রিডাইরেক্ট
+          router.replace("/login"); 
           return;
         }
 
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        const userRole = userDoc.data()?.role?.toLowerCase();
-
-        if (userRole !== allowedRole.toLowerCase()) {
-          router.push("/login");
-        } else {
-          setLoading(false);
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          
+          if (userDoc.exists()) {
+            const userRole = userDoc.data().role;
+            
+            // ২. বড় হাত বা ছোট হাত যাই হোক, চেক করবে
+            if (userRole?.toLowerCase() === allowedRole.toLowerCase()) {
+              setLoading(false);
+            } else {
+              console.warn("Role mismatch! Current:", userRole, "Required:", allowedRole);
+              router.replace("/login");
+            }
+          } else {
+            console.error("User document not found in Firestore!");
+            router.replace("/login");
+          }
+        } catch (error) {
+          console.error("Auth error:", error);
+          router.replace("/login");
         }
       });
       return () => unsubscribe();
     }, [router]);
 
     if (loading) return (
-      <div className="h-screen flex items-center justify-center bg-[#0A0A0A]">
-        <h1 className="text-white font-black italic text-2xl animate-pulse tracking-tighter uppercase">Bonomaya Security...</h1>
+      <div className="h-screen flex items-center justify-center bg-[#0A0A0A] fixed inset-0 z-[999]">
+        <h1 className="text-white font-black italic text-2xl animate-pulse tracking-tighter uppercase font-sans">
+          Bonomaya Security...
+        </h1>
       </div>
     );
 
