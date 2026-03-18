@@ -202,4 +202,4 @@ function ChefDashboard() {
     </div>
   );
 }
-export default withAuth(AdminDashboard, "chef");
+export default withAuth(AdminDashboard, "Chef");
