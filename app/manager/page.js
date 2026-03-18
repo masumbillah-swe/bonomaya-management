@@ -13,7 +13,8 @@ import {
   Cell, PieChart, Pie 
 } from "recharts";
 
-export default function ManagerDashboard() {
+import withAuth from "../../components/withAuth";
+function ManagerDashboard() {
   const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false); 
   const [activeSection, setActiveSection] = useState("dashboard"); 
@@ -243,3 +244,4 @@ export default function ManagerDashboard() {
     </div>
   );
 }
+export default withAuth(ManagerDashboard, "Chef");

@@ -8,7 +8,8 @@ import {
   Store, PlusCircle, ArrowRightCircle, History, AlertTriangle, CheckCircle2
 } from "lucide-react";
 
-export default function SalesmanDashboard() {
+import withAuth from "../../components/withAuth";
+function SalesmanDashboard() {
   const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("receive"); 
@@ -185,3 +186,4 @@ export default function SalesmanDashboard() {
     </div>
   );
 }
+export default withAuth(SalesmanDashboard, "Salesman");
