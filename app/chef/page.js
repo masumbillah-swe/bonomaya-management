@@ -8,7 +8,8 @@ import {
   ChefHat, PlusCircle, CheckCircle2, History, Search, ArrowDownCircle
 } from "lucide-react";
 
-export default function ChefDashboard() {
+import withAuth from "../../components/withAuth";
+function ChefDashboard() {
   const router = useRouter();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("dashboard"); 
@@ -201,3 +202,4 @@ export default function ChefDashboard() {
     </div>
   );
 }
+export default withAuth(AdminDashboard, "chef");
